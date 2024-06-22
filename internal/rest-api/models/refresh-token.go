@@ -19,12 +19,17 @@ type RefreshToken struct {
 }
 
 func RefreshTokenFromEntity(refreshToken *entities.RefreshToken) *RefreshToken {
+	var user User
+	if refreshToken.GetUser() != nil {
+		user = *UserFromEntity(refreshToken.GetUser())
+	}
+
 	return &RefreshToken{
 		ID:        refreshToken.GetId(),
 		Token:     refreshToken.GetToken(),
 		TTLsec:    refreshToken.GetTtlSec(),
 		UserID:    refreshToken.GetUserId(),
-		User:      *UserFromEntity(refreshToken.GetUser()),
+		User:      user,
 		CreatedAt: refreshToken.GetCreatedAt(),
 		UpdatedAt: refreshToken.GetUpdatedAt(),
 	}

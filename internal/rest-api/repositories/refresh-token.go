@@ -26,7 +26,7 @@ func (r *refreshTokenRepository) Create(
 
 	model := models.RefreshTokenFromEntity(refreshToken)
 
-	err := r.db.WithContext(ctx).Create(model).Error
+	err := r.db.WithContext(ctx).Preload("User").Create(model).Error
 	if err != nil {
 		return err
 	}
