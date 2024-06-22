@@ -76,3 +76,10 @@ func (r *refreshTokenRepository) Delete(
 	}
 	return nil
 }
+
+func (r *refreshTokenRepository) DeleteExpired(ctx context.Context) error {
+	return r.db.WithContext(ctx).
+		Where("created_at + interval '1 second' * ttlsec < now()").
+		Delete(&models.RefreshToken{}).
+		Error
+}

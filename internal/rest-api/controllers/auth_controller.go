@@ -12,6 +12,8 @@ import (
 	"github.com/golang-jwt/jwt/v4"
 )
 
+const cookieName = "refreshToken"
+
 type AuthController struct {
 	authService services.AuthService
 
@@ -32,7 +34,10 @@ func NewAuthController(
 func (ac *AuthController) RegisterRoutes(r *gin.Engine) {
 	r.POST("/register", AnonymousMiddleware(ac.jwtSecretKey), ac.register)
 	r.POST("/login", AnonymousMiddleware(ac.jwtSecretKey), ac.login)
+	r.POST("/logout", ac.logout)
+
 	r.GET("/refresh-tokens", ac.refreshTokens)
+
 	r.GET("/me", AuthMiddleware(ac.jwtSecretKey), ac.me)
 	r.GET("/active-sessions", AuthMiddleware(ac.jwtSecretKey), ac.activeSessions)
 }
@@ -68,7 +73,7 @@ func (ac *AuthController) login(c *gin.Context) {
 	}
 
 	c.SetCookie(
-		"refreshToken", tokens.RefreshToken.Token,
+		cookieName, tokens.RefreshToken.Token,
 		tokens.RefreshToken.TTLsec, "/", "", false, true,
 	)
 
@@ -80,7 +85,7 @@ func (ac *AuthController) login(c *gin.Context) {
 
 func (ac *AuthController) refreshTokens(c *gin.Context) {
 
-	refreshToken, err := c.Cookie("refreshToken")
+	refreshToken, err := c.Cookie(cookieName)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -93,7 +98,7 @@ func (ac *AuthController) refreshTokens(c *gin.Context) {
 	}
 
 	c.SetCookie(
-		"refreshToken", tokens.RefreshToken.Token,
+		cookieName, tokens.RefreshToken.Token,
 		tokens.RefreshToken.TTLsec, "/", "", false, true,
 	)
 
@@ -127,6 +132,19 @@ func (ac *AuthController) activeSessions(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"sessions": sessionsDTO})
+}
+
+func (ac *AuthController) logout(c *gin.Context) {
+	refreshToken, err := c.Cookie(cookieName)
+	if err != nil {
+		c.JSON(http.StatusOK, gin.H{"message": err.Error()})
+		return
+	}
+
+	ac.authService.Logout(c, refreshToken)
+
+	c.SetCookie(cookieName, "", -1, "/", "", false, true)
+	c.JSON(http.StatusOK, gin.H{"message": "Logged out"})
 }
 
 func AuthMiddleware(jwtSecretKey []byte) gin.HandlerFunc {

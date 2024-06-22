@@ -6,6 +6,7 @@ import (
 	"go-jwt-auth/internal/rest-api/dto"
 	"go-jwt-auth/internal/rest-api/entities"
 	"go-jwt-auth/internal/rest-api/models"
+	"log"
 	"time"
 
 	"github.com/golang-jwt/jwt/v4"
@@ -22,9 +23,11 @@ type RefreshTokenRepository interface {
 
 	GetByToken(ctx context.Context, token string) (*models.RefreshToken, error)
 
+	GetByUserEmail(ctx context.Context, email string) ([]*models.RefreshToken, error)
+
 	Delete(ctx context.Context, refreshToken *models.RefreshToken) error
 
-	GetByUserEmail(ctx context.Context, email string) ([]*models.RefreshToken, error)
+	DeleteExpired(ctx context.Context) error
 }
 
 type AuthService interface {
@@ -37,6 +40,10 @@ type AuthService interface {
 	GetUser(ctx context.Context, email string) (*entities.User, error)
 
 	ActiveSessions(ctx context.Context, email string) ([]*models.RefreshToken, error)
+
+	Logout(ctx context.Context, refreshToken string) error
+
+	RunScheduledTasks(ctx context.Context)
 }
 
 type authService struct {
@@ -194,4 +201,33 @@ func (s *authService) ActiveSessions(
 ) ([]*models.RefreshToken, error) {
 
 	return s.refreshTokenRepository.GetByUserEmail(ctx, email)
+}
+
+func (s *authService) Logout(
+	ctx context.Context,
+	refreshToken string,
+) error {
+	model, err := s.refreshTokenRepository.GetByToken(ctx, refreshToken)
+	if err != nil {
+		return err
+	}
+
+	return s.refreshTokenRepository.Delete(ctx, model)
+}
+
+func (s *authService) RunScheduledTasks(ctx context.Context) {
+	for {
+		err := s.refreshTokenRepository.DeleteExpired(ctx)
+		if err != nil {
+			log.Printf("authService: Error deleting expired refresh tokens: %v", err)
+		} else {
+			log.Println("authService: Deleted expired refresh tokens")
+		}
+
+		select {
+		case <-ctx.Done():
+			return
+		case <-time.After(time.Duration(1) * time.Minute):
+		}
+	}
 }

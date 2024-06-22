@@ -3,6 +3,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log"
 
@@ -43,6 +44,12 @@ func main() {
 	)
 
 	authController.RegisterRoutes(r)
+
+	ctx := context.Background()
+	ctxCancel, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	go authService.RunScheduledTasks(ctxCancel)
 
 	r.Run(fmt.Sprintf(":%s", cfg.Port))
 }
