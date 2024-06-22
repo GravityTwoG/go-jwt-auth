@@ -20,5 +20,10 @@ func main() {
 		log.Fatal(err)
 	}
 
+	err = db.AutoMigrate(&models.RefreshToken{})
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	log.Println("Migrations complete")
 }

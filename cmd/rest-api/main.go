@@ -26,11 +26,15 @@ func main() {
 	}
 
 	userRepo := repositories.NewUserRepository(db)
+	refreshTokenRepo := repositories.NewRefreshTokenRepository(db)
+
 	userService := services.NewUserService(userRepo)
 	authService := services.NewAuthService(
 		userService,
+		refreshTokenRepo,
 		cfg.JWTSecretKey,
-		cfg.JWTExpirationMillis,
+		cfg.JWTAccessTTLsec,
+		cfg.RefreshTokenTTLsec,
 	)
 
 	authController := controllers.NewAuthController(

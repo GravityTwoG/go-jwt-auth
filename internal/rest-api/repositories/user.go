@@ -24,6 +24,7 @@ func (r *userRepository) Create(
 	ctx context.Context,
 	user *entities.User,
 ) error {
+
 	userModel := models.UserFromEntity(user)
 
 	err := r.db.WithContext(ctx).Create(userModel).Error

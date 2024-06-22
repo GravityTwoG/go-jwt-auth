@@ -11,10 +11,11 @@ import (
 )
 
 type Config struct {
-	JWTSecretKey        string
-	JWTExpirationMillis int64
-	Port                string
-	DSN                 string
+	JWTSecretKey       string
+	JWTAccessTTLsec    int
+	RefreshTokenTTLsec int
+	Port               string
+	DSN                string
 }
 
 func MustLoadConfig() *Config {
@@ -30,10 +31,14 @@ func MustLoadConfig() *Config {
 		log.Fatal("JWT_SECRET_KEY not set in .env file")
 	}
 
-	jwtExpirationMillisStr := os.Getenv("JWT_EXPIRATION_MILLIS")
-	config.JWTExpirationMillis, err = strconv.ParseInt(jwtExpirationMillisStr, 10, 64)
+	config.JWTAccessTTLsec, err = strconv.Atoi(os.Getenv("JWT_ACCESS_TTL_SEC"))
 	if err != nil {
-		log.Fatal("Invalid JWT_EXPIRATION_MILLIS value in .env file")
+		log.Fatal("Invalid JWT_ACCESS_TTL_SEC value in .env file")
+	}
+
+	config.RefreshTokenTTLsec, err = strconv.Atoi(os.Getenv("REFRESH_TOKEN_TTL_SEC"))
+	if err != nil {
+		log.Fatal("Invalid REFRESH_TOKEN_TTL_SEC value in .env file")
 	}
 
 	config.Port = os.Getenv("PORT")

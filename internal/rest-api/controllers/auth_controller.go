@@ -32,7 +32,9 @@ func NewAuthController(
 func (ac *AuthController) RegisterRoutes(r *gin.Engine) {
 	r.POST("/register", AnonymousMiddleware(ac.jwtSecretKey), ac.register)
 	r.POST("/login", AnonymousMiddleware(ac.jwtSecretKey), ac.login)
-	r.GET("/protected", AuthMiddleware(ac.jwtSecretKey), ac.protectedEndpoint)
+	r.GET("/refresh-tokens", ac.refreshTokens)
+	r.GET("/me", AuthMiddleware(ac.jwtSecretKey), ac.me)
+	r.GET("/active-sessions", AuthMiddleware(ac.jwtSecretKey), ac.activeSessions)
 }
 
 func (ac *AuthController) register(c *gin.Context) {
@@ -52,29 +54,79 @@ func (ac *AuthController) register(c *gin.Context) {
 }
 
 func (ac *AuthController) login(c *gin.Context) {
+
 	var loginDTO dto.LoginDTO
 	if err := c.ShouldBindJSON(&loginDTO); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	user, tokenString, err := ac.authService.Login(c, &loginDTO)
+	user, tokens, err := ac.authService.Login(c, &loginDTO)
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
 		return
 	}
 
+	c.SetCookie(
+		"refreshToken", tokens.RefreshToken.Token,
+		tokens.RefreshToken.TTLsec, "/", "", false, true,
+	)
+
 	c.JSON(http.StatusOK, gin.H{
-		"token": tokenString,
-		"user":  dto.FromEntity(user),
+		"accessToken": tokens.AccessToken,
+		"user":        dto.FromEntity(user),
 	})
 }
 
-func (ac *AuthController) protectedEndpoint(c *gin.Context) {
+func (ac *AuthController) refreshTokens(c *gin.Context) {
+
+	refreshToken, err := c.Cookie("refreshToken")
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	tokens, err := ac.authService.RefreshTokens(c, refreshToken)
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.SetCookie(
+		"refreshToken", tokens.RefreshToken.Token,
+		tokens.RefreshToken.TTLsec, "/", "", false, true,
+	)
+
+	c.JSON(http.StatusOK, gin.H{"accessToken": tokens.AccessToken})
+}
+
+func (ac *AuthController) me(c *gin.Context) {
 	email, _ := c.Get("email")
-	c.JSON(http.StatusOK, gin.H{
-		"message": "Welcome to the protected area, " + email.(string) + "!",
-	})
+
+	user, err := ac.authService.GetUser(c, email.(string))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, dto.FromEntity(user))
+}
+
+func (ac *AuthController) activeSessions(c *gin.Context) {
+	email, _ := c.Get("email")
+
+	sessions, err := ac.authService.ActiveSessions(c, email.(string))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	var sessionsDTO []string
+	for _, session := range sessions {
+		sessionsDTO = append(sessionsDTO, session.Token)
+	}
+
+	c.JSON(http.StatusOK, gin.H{"sessions": sessionsDTO})
 }
 
 func AuthMiddleware(jwtSecretKey []byte) gin.HandlerFunc {

@@ -9,6 +9,7 @@ import (
 
 type UserRepository interface {
 	Create(ctx context.Context, user *entities.User) error
+
 	GetByEmail(ctx context.Context, email string) (*entities.User, error)
 }
 
@@ -16,6 +17,8 @@ type UserService interface {
 	Register(ctx context.Context, dto *dto.RegisterDTO) (*entities.User, error)
 
 	Login(ctx context.Context, dto *dto.LoginDTO) (*entities.User, error)
+
+	GetByEmail(ctx context.Context, email string) (*entities.User, error)
 }
 
 type userService struct {
@@ -30,7 +33,10 @@ func NewUserService(
 	}
 }
 
-func (s *userService) Register(ctx context.Context, registerDTO *dto.RegisterDTO) (*entities.User, error) {
+func (s *userService) Register(
+	ctx context.Context,
+	registerDTO *dto.RegisterDTO,
+) (*entities.User, error) {
 
 	if registerDTO.Password != registerDTO.Password2 {
 		return nil, fmt.Errorf("PASSWORDS_DONT_MATCH")
@@ -56,6 +62,7 @@ func (s *userService) Login(
 	ctx context.Context,
 	loginDTO *dto.LoginDTO,
 ) (*entities.User, error) {
+
 	user, err := s.userRepo.GetByEmail(ctx, loginDTO.Email)
 	if err != nil {
 		return nil, err
@@ -66,4 +73,11 @@ func (s *userService) Login(
 	}
 
 	return user, nil
+}
+
+func (s *userService) GetByEmail(
+	ctx context.Context,
+	email string,
+) (*entities.User, error) {
+	return s.userRepo.GetByEmail(ctx, email)
 }
