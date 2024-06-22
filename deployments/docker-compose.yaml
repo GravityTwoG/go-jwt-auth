@@ -1,0 +1,43 @@
+version: "3"
+
+services:
+  go-jwt-auth-rest-api:
+    build:
+      context: ../deployments/rest-api-local
+    volumes:
+      - ../internal:/internal
+      - ../cmd:/cmd
+      - ../docs:/docs
+      - ../.go/pkg:/go/pkg
+      - ../.go-cache:/go-cache
+      - ../go.mod:/go.mod
+      - ../go.sum:/go.sum
+      - ../.env:/.env
+    working_dir: /
+    ports:
+      - "8080:8080"
+    depends_on:
+      - postgres
+
+  postgres:
+    container_name: go-jwt-auth-db
+    image: postgres:15
+    ports:
+      - "5444:5432"
+    volumes:
+      - ./docker-volumes/dev/pgdata:/data/postgres
+    environment:
+      POSTGRES_USER: go-jwt-auth-rest-api
+      POSTGRES_PASSWORD: 12121212
+      POSTGRES_DB: go-jwt-auth-db
+
+  pgadmin:
+    container_name: go-jwt-auth-pgadmin
+    links:
+      - postgres:postgres
+    image: dpage/pgadmin4:6.20
+    ports:
+      - "5050:80"
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@example.com
+      PGADMIN_DEFAULT_PASSWORD: 12121212
