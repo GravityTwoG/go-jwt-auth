@@ -82,7 +82,11 @@ func (u *User) ComparePassword(rawPassword string) bool {
 }
 
 func hashPassword(password string) (string, error) {
-	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), 10)
+	hashedPassword, err := bcrypt.GenerateFromPassword(
+		[]byte(password),
+		bcrypt.DefaultCost,
+	)
+
 	if err != nil {
 		return "", err
 	}
