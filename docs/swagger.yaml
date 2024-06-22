@@ -1,0 +1,168 @@
+basePath: /
+definitions:
+  controllers.LoginResponeDTO:
+    properties:
+      accessToken:
+        type: string
+      user:
+        $ref: '#/definitions/dto.UserDTO'
+    type: object
+  controllers.LogoutResponeDTO:
+    properties:
+      message:
+        type: string
+    type: object
+  controllers.RefreshTokensResponeDTO:
+    properties:
+      accessToken:
+        type: string
+    type: object
+  dto.LoginDTO:
+    properties:
+      email:
+        type: string
+      password:
+        type: string
+    required:
+    - email
+    - password
+    type: object
+  dto.RegisterDTO:
+    properties:
+      email:
+        type: string
+      password:
+        type: string
+      password2:
+        type: string
+    required:
+    - email
+    - password
+    - password2
+    type: object
+  dto.UserDTO:
+    properties:
+      email:
+        type: string
+      id:
+        type: integer
+    type: object
+host: localhost:8080
+info:
+  contact:
+    email: marsel.ave@gmail.com
+    name: Marsel Abazbekov
+    url: https://github.com/GravityTwoG
+  description: Go JWT Auth API example
+  title: Go JWT Auth API
+  version: "1.0"
+paths:
+  /active-sessions:
+    get:
+      description: Get active sessions (list of refresh tokens)
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              type: string
+            type: array
+      security:
+      - ApiKeyAuth: []
+      summary: Get active sessions
+      tags:
+      - Auth
+  /login:
+    post:
+      consumes:
+      - application/json
+      description: Login user, also sets refresh token in cookie
+      parameters:
+      - description: LoginDTO
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dto.LoginDTO'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/controllers.LoginResponeDTO'
+      summary: Login user
+      tags:
+      - Auth
+  /logout:
+    post:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/controllers.LogoutResponeDTO'
+      security:
+      - ApiKeyAuth: []
+      summary: Logout user
+      tags:
+      - Auth
+  /me:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.UserDTO'
+      security:
+      - ApiKeyAuth: []
+      summary: Get current user
+      tags:
+      - Auth
+  /refresh-tokens:
+    post:
+      description: Refresh tokens, also sets new refresh token in cookie
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/controllers.RefreshTokensResponeDTO'
+      security:
+      - ApiKeyAuth: []
+      summary: Refresh tokens
+      tags:
+      - Auth
+  /register:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: RegisterDTO
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dto.RegisterDTO'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/dto.UserDTO'
+      summary: Register new user
+      tags:
+      - Auth
+securityDefinitions:
+  ApiKeyAuth:
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"

@@ -36,12 +36,19 @@ func (ac *AuthController) RegisterRoutes(r *gin.Engine) {
 	r.POST("/login", AnonymousMiddleware(ac.jwtSecretKey), ac.login)
 	r.POST("/logout", ac.logout)
 
-	r.GET("/refresh-tokens", ac.refreshTokens)
+	r.POST("/refresh-tokens", ac.refreshTokens)
 
 	r.GET("/me", AuthMiddleware(ac.jwtSecretKey), ac.me)
 	r.GET("/active-sessions", AuthMiddleware(ac.jwtSecretKey), ac.activeSessions)
 }
 
+// @Tags		Auth
+// @Summary	Register new user
+// @Accept		json
+// @Produce	json
+// @Param		body	body		dto.RegisterDTO	true	"RegisterDTO"
+// @Success	201		{object}	dto.UserDTO
+// @Router		/register [post]
 func (ac *AuthController) register(c *gin.Context) {
 	var registerDTO dto.RegisterDTO
 	if err := c.ShouldBindJSON(&registerDTO); err != nil {
@@ -55,9 +62,22 @@ func (ac *AuthController) register(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, dto.FromEntity(user))
+	c.JSON(http.StatusCreated, dto.FromEntity(user))
 }
 
+type LoginResponeDTO struct {
+	AccessToken string `json:"accessToken"`
+	User        dto.UserDTO
+}
+
+// @Tags		Auth
+// @Summary	Login user
+// @Description Login user, also sets refresh token in cookie
+// @Accept		json
+// @Produce	json
+// @Param		body	body		dto.LoginDTO	true	"LoginDTO"
+// @Success	200		{object}	LoginResponeDTO
+// @Router		/login [post]
 func (ac *AuthController) login(c *gin.Context) {
 
 	var loginDTO dto.LoginDTO
@@ -83,6 +103,17 @@ func (ac *AuthController) login(c *gin.Context) {
 	})
 }
 
+type RefreshTokensResponeDTO struct {
+	AccessToken string `json:"accessToken"`
+}
+
+// @Tags		Auth
+// @Summary	Refresh tokens
+// @Description Refresh tokens, also sets new refresh token in cookie
+// @Security	ApiKeyAuth
+// @Produce	json
+// @Success	200	{object}	RefreshTokensResponeDTO
+// @Router		/refresh-tokens [post]
 func (ac *AuthController) refreshTokens(c *gin.Context) {
 
 	refreshToken, err := c.Cookie(cookieName)
@@ -105,6 +136,12 @@ func (ac *AuthController) refreshTokens(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"accessToken": tokens.AccessToken})
 }
 
+// @Tags		Auth
+// @Summary	Get current user
+// @Security	ApiKeyAuth
+// @Produce	json
+// @Success	200	{object}	dto.UserDTO
+// @Router		/me [get]
 func (ac *AuthController) me(c *gin.Context) {
 	email, _ := c.Get("email")
 
@@ -117,6 +154,13 @@ func (ac *AuthController) me(c *gin.Context) {
 	c.JSON(http.StatusOK, dto.FromEntity(user))
 }
 
+// @Tags		Auth
+// @Summary	Get active sessions
+// @Description	Get active sessions (list of refresh tokens)
+// @Security	ApiKeyAuth
+// @Produce	json
+// @Success	200	{array}	string
+// @Router		/active-sessions [get]
 func (ac *AuthController) activeSessions(c *gin.Context) {
 	email, _ := c.Get("email")
 
@@ -134,6 +178,16 @@ func (ac *AuthController) activeSessions(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"sessions": sessionsDTO})
 }
 
+type LogoutResponeDTO struct {
+	Message string `json:"message"`
+}
+
+// @Tags		Auth
+// @Summary	Logout user
+// @Security	ApiKeyAuth
+// @Produce	json
+// @Success	200	{object}	LogoutResponeDTO
+// @Router		/logout [post]
 func (ac *AuthController) logout(c *gin.Context) {
 	refreshToken, err := c.Cookie(cookieName)
 	if err != nil {
