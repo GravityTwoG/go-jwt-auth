@@ -1,6 +1,7 @@
 package models
 
 import (
+	"go-jwt-auth/internal/rest-api/entities"
 	"time"
 )
 
@@ -15,4 +16,32 @@ type RefreshToken struct {
 
 	CreatedAt time.Time
 	UpdatedAt time.Time
+}
+
+func RefreshTokenFromEntity(refreshToken *entities.RefreshToken) *RefreshToken {
+	return &RefreshToken{
+		ID:        refreshToken.GetId(),
+		Token:     refreshToken.GetToken(),
+		TTLsec:    refreshToken.GetTtlSec(),
+		UserID:    refreshToken.GetUserId(),
+		User:      *UserFromEntity(refreshToken.GetUser()),
+		CreatedAt: refreshToken.GetCreatedAt(),
+		UpdatedAt: refreshToken.GetUpdatedAt(),
+	}
+}
+
+func RefreshTokenFromModel(refreshTokenModel *RefreshToken) *entities.RefreshToken {
+	return entities.RefreshTokenFromDB(
+		refreshTokenModel.ID,
+		refreshTokenModel.Token,
+		refreshTokenModel.TTLsec,
+		refreshTokenModel.UserID,
+		entities.UserFromDB(
+			refreshTokenModel.UserID,
+			refreshTokenModel.User.Email,
+			refreshTokenModel.User.Password,
+		),
+		refreshTokenModel.CreatedAt,
+		refreshTokenModel.UpdatedAt,
+	)
 }

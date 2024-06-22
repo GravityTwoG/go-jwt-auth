@@ -5,27 +5,25 @@ import (
 	domain_errors "go-jwt-auth/internal/rest-api/domain-errors"
 	"go-jwt-auth/internal/rest-api/dto"
 	"go-jwt-auth/internal/rest-api/entities"
-	"go-jwt-auth/internal/rest-api/models"
 	"log"
 	"time"
 
 	"github.com/golang-jwt/jwt/v4"
-	"github.com/google/uuid"
 )
 
 type Tokens struct {
 	AccessToken  string
-	RefreshToken models.RefreshToken
+	RefreshToken entities.RefreshToken
 }
 
 type RefreshTokenRepository interface {
-	Create(ctx context.Context, refreshToken *models.RefreshToken) error
+	Create(ctx context.Context, refreshToken *entities.RefreshToken) error
 
-	GetByToken(ctx context.Context, token string) (*models.RefreshToken, error)
+	GetByToken(ctx context.Context, token string) (*entities.RefreshToken, error)
 
-	GetByUserEmail(ctx context.Context, email string) ([]*models.RefreshToken, error)
+	GetByUserEmail(ctx context.Context, email string) ([]*entities.RefreshToken, error)
 
-	Delete(ctx context.Context, refreshToken *models.RefreshToken) error
+	Delete(ctx context.Context, refreshToken *entities.RefreshToken) error
 
 	DeleteExpired(ctx context.Context) error
 }
@@ -39,7 +37,7 @@ type AuthService interface {
 
 	GetUser(ctx context.Context, email string) (*entities.User, error)
 
-	ActiveSessions(ctx context.Context, email string) ([]*models.RefreshToken, error)
+	ActiveSessions(ctx context.Context, email string) ([]*entities.RefreshToken, error)
 
 	Logout(ctx context.Context, refreshToken string) error
 
@@ -98,11 +96,10 @@ func (s *authService) Login(
 		return nil, nil, err
 	}
 
-	refreshToken := &models.RefreshToken{
-		UserID: user.GetId(),
-		Token:  uuid.New().String(),
-		TTLsec: s.refreshTokenTTLsec,
-	}
+	refreshToken := entities.NewRefreshToken(
+		user.GetId(),
+		s.refreshTokenTTLsec,
+	)
 
 	err = s.refreshTokenRepository.Create(ctx, refreshToken)
 	if err != nil {
@@ -127,10 +124,7 @@ func (s *authService) RefreshTokens(
 		return nil, err
 	}
 
-	expirationTime := existingRefreshToken.CreatedAt.
-		Add(time.Duration(existingRefreshToken.TTLsec) * time.Second)
-
-	if time.Now().After(expirationTime) {
+	if existingRefreshToken.Expired() {
 		return nil, domain_errors.NewErrInvalidInput("refresh token expired")
 	}
 
@@ -141,23 +135,16 @@ func (s *authService) RefreshTokens(
 	}
 
 	// create new token
-	newRefreshToken := &models.RefreshToken{
-		UserID: existingRefreshToken.UserID,
-		Token:  uuid.New().String(),
-		TTLsec: s.refreshTokenTTLsec,
-	}
+	newRefreshToken := entities.NewRefreshToken(
+		existingRefreshToken.GetUserId(),
+		s.refreshTokenTTLsec,
+	)
 	err = s.refreshTokenRepository.Create(ctx, newRefreshToken)
 	if err != nil {
 		return nil, err
 	}
 
-	user := entities.UserFromDB(
-		existingRefreshToken.User.ID,
-		existingRefreshToken.User.Email,
-		existingRefreshToken.User.Password,
-	)
-
-	accessToken, err := s.newJWT(user)
+	accessToken, err := s.newJWT(existingRefreshToken.GetUser())
 	if err != nil {
 		return nil, err
 	}
@@ -198,7 +185,7 @@ func (s *authService) GetUser(
 func (s *authService) ActiveSessions(
 	ctx context.Context,
 	email string,
-) ([]*models.RefreshToken, error) {
+) ([]*entities.RefreshToken, error) {
 
 	return s.refreshTokenRepository.GetByUserEmail(ctx, email)
 }

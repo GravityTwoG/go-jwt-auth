@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"go-jwt-auth/internal/rest-api/dto"
+	"go-jwt-auth/internal/rest-api/entities"
 	"go-jwt-auth/internal/rest-api/services"
 
 	"github.com/gin-gonic/gin"
@@ -92,15 +93,22 @@ func (ac *AuthController) login(c *gin.Context) {
 		return
 	}
 
-	c.SetCookie(
-		cookieName, tokens.RefreshToken.Token,
-		tokens.RefreshToken.TTLsec, "/", "", false, true,
-	)
+	setRefreshTokenCookie(c, &tokens.RefreshToken)
 
 	c.JSON(http.StatusOK, gin.H{
 		"accessToken": tokens.AccessToken,
 		"user":        dto.FromEntity(user),
 	})
+}
+
+func setRefreshTokenCookie(
+	c *gin.Context,
+	refreshToken *entities.RefreshToken,
+) {
+	c.SetCookie(
+		cookieName, refreshToken.GetToken(),
+		refreshToken.GetTtlSec(), "/", "", false, true,
+	)
 }
 
 type RefreshTokensResponeDTO struct {
@@ -128,10 +136,7 @@ func (ac *AuthController) refreshTokens(c *gin.Context) {
 		return
 	}
 
-	c.SetCookie(
-		cookieName, tokens.RefreshToken.Token,
-		tokens.RefreshToken.TTLsec, "/", "", false, true,
-	)
+	setRefreshTokenCookie(c, &tokens.RefreshToken)
 
 	c.JSON(http.StatusOK, gin.H{"accessToken": tokens.AccessToken})
 }
@@ -172,7 +177,7 @@ func (ac *AuthController) activeSessions(c *gin.Context) {
 
 	var sessionsDTO []string
 	for _, session := range sessions {
-		sessionsDTO = append(sessionsDTO, session.Token)
+		sessionsDTO = append(sessionsDTO, session.GetToken())
 	}
 
 	c.JSON(http.StatusOK, gin.H{"sessions": sessionsDTO})
@@ -197,7 +202,9 @@ func (ac *AuthController) logout(c *gin.Context) {
 
 	ac.authService.Logout(c, refreshToken)
 
+	// Delete refresh token from cookie
 	c.SetCookie(cookieName, "", -1, "/", "", false, true)
+
 	c.JSON(http.StatusOK, gin.H{"message": "Logged out"})
 }
 

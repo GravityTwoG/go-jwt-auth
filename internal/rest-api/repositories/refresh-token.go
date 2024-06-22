@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"context"
+	"go-jwt-auth/internal/rest-api/entities"
 	"go-jwt-auth/internal/rest-api/models"
 	"go-jwt-auth/internal/rest-api/services"
 
@@ -20,20 +21,23 @@ func NewRefreshTokenRepository(db *gorm.DB) services.RefreshTokenRepository {
 
 func (r *refreshTokenRepository) Create(
 	ctx context.Context,
-	refreshToken *models.RefreshToken,
+	refreshToken *entities.RefreshToken,
 ) error {
 
-	err := r.db.WithContext(ctx).Create(refreshToken).Error
+	model := models.RefreshTokenFromEntity(refreshToken)
+
+	err := r.db.WithContext(ctx).Create(model).Error
 	if err != nil {
 		return err
 	}
+	*refreshToken = *models.RefreshTokenFromModel(model)
 	return nil
 }
 
 func (r *refreshTokenRepository) GetByToken(
 	ctx context.Context,
 	token string,
-) (*models.RefreshToken, error) {
+) (*entities.RefreshToken, error) {
 
 	refreshToken := &models.RefreshToken{}
 	err := r.db.WithContext(ctx).
@@ -45,13 +49,13 @@ func (r *refreshTokenRepository) GetByToken(
 		return nil, err
 	}
 
-	return refreshToken, nil
+	return models.RefreshTokenFromModel(refreshToken), nil
 }
 
 func (r *refreshTokenRepository) GetByUserEmail(
 	ctx context.Context,
 	email string,
-) ([]*models.RefreshToken, error) {
+) ([]*entities.RefreshToken, error) {
 
 	refreshTokens := []*models.RefreshToken{}
 	err := r.db.WithContext(ctx).
@@ -62,15 +66,21 @@ func (r *refreshTokenRepository) GetByUserEmail(
 		return nil, err
 	}
 
-	return refreshTokens, nil
+	entities := make([]*entities.RefreshToken, len(refreshTokens))
+	for i := 0; i < len(refreshTokens); i++ {
+		entities[i] = models.RefreshTokenFromModel(refreshTokens[i])
+	}
+
+	return entities, nil
 }
 
 func (r *refreshTokenRepository) Delete(
 	ctx context.Context,
-	refreshToken *models.RefreshToken,
+	refreshToken *entities.RefreshToken,
 ) error {
 
-	err := r.db.WithContext(ctx).Delete(refreshToken).Error
+	model := models.RefreshTokenFromEntity(refreshToken)
+	err := r.db.WithContext(ctx).Delete(model).Error
 	if err != nil {
 		return err
 	}
