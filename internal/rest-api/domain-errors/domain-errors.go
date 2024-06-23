@@ -1,56 +1,78 @@
 package domain_errors
 
-import "fmt"
+import (
+	"errors"
+	"fmt"
+)
 
-type ErrDomain struct {
-	Err  error
-	Code string
+const EntityNotFound = "ENTITY_NOT_FOUND"
+
+const EntityAlreadyExists = "ENTITY_ALREADY_EXISTS"
+
+const InvalidInput = "INVALID_INPUT"
+
+const Unknown = "UNKNOWN"
+
+type ErrDomain interface {
+	Kind() string
+	Code() string
+	Error() string
 }
 
-func (e *ErrDomain) Error() string {
-	return e.Err.Error()
+type errDomain struct {
+	kind string
+	code string
+	err  error
 }
 
-type ErrEntityNotFound struct {
-	ErrDomain
+func newErr(kind string, code string, err error) ErrDomain {
+	return &errDomain{
+		kind: kind,
+		code: code,
+		err:  err,
+	}
 }
 
-func NewErrEntityNotFound(entity string) *ErrEntityNotFound {
-	return &ErrEntityNotFound{ErrDomain{
-		Err:  fmt.Errorf("entity %s not found", entity),
-		Code: "ENTITY_NOT_FOUND",
-	}}
+func (e *errDomain) Kind() string {
+	return e.kind
 }
 
-type ErrEntityAlreadyExists struct {
-	ErrDomain
+func (e *errDomain) Code() string {
+	return e.code
 }
 
-func NewErrEntityAlreadyExists(entity string) *ErrEntityAlreadyExists {
-	return &ErrEntityAlreadyExists{ErrDomain{
-		Err:  fmt.Errorf("entity %s already exists", entity),
-		Code: "ENTITY_ALREADY_EXISTS",
-	}}
+func (e *errDomain) Error() string {
+	return e.err.Error()
 }
 
-type ErrInvalidInput struct {
-	ErrDomain
+func (e *errDomain) Unwrap() error {
+	return e.err
 }
 
-func NewErrInvalidInput(err string) *ErrInvalidInput {
-	return &ErrInvalidInput{ErrDomain{
-		Err:  fmt.Errorf("invalid input: %s", err),
-		Code: "INVALID_INPUT",
-	}}
+func NewErrEntityNotFound(entity string) ErrDomain {
+	return newErr(
+		EntityNotFound,
+		EntityNotFound,
+		fmt.Errorf("entity %s not found", entity),
+	)
 }
 
-type ErrUnknown struct {
-	ErrDomain
+func NewErrEntityAlreadyExists(entity string) ErrDomain {
+	return newErr(
+		EntityAlreadyExists,
+		EntityAlreadyExists,
+		fmt.Errorf("entity %s already exists", entity),
+	)
 }
 
-func NewErrUnknown(err error) *ErrUnknown {
-	return &ErrUnknown{ErrDomain{
-		Err:  err,
-		Code: "UNKNOWN",
-	}}
+func NewErrInvalidInput(code string, err string) ErrDomain {
+	return newErr(
+		InvalidInput,
+		code,
+		errors.New(err),
+	)
+}
+
+func NewErrUnknown(err error) ErrDomain {
+	return newErr(Unknown, err.Error(), err)
 }

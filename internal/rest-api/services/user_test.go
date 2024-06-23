@@ -6,7 +6,6 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
-	"gorm.io/gorm"
 
 	domain_errors "go-jwt-auth/internal/rest-api/domain-errors"
 	"go-jwt-auth/internal/rest-api/dto"
@@ -21,17 +20,30 @@ type mockedUserRepository struct {
 func (m *mockedUserRepository) Create(
 	ctx context.Context,
 	user *entities.User,
-) error {
+) domain_errors.ErrDomain {
 	args := m.Called(ctx, user)
-	return args.Error(0)
+	err := args.Error(0)
+	if err != nil {
+		return err.(domain_errors.ErrDomain)
+	}
+	return nil
 }
 
 func (m *mockedUserRepository) GetByEmail(
 	ctx context.Context,
 	email string,
-) (*entities.User, error) {
+) (*entities.User, domain_errors.ErrDomain) {
+
 	args := m.Called(ctx, email)
-	return args.Get(0).(*entities.User), args.Error(1)
+
+	user := args.Get(0)
+	err := args.Error(1)
+
+	if err != nil {
+		return nil, err.(domain_errors.ErrDomain)
+	}
+
+	return user.(*entities.User), nil
 }
 
 func TestUserService_Register(t *testing.T) {
@@ -98,12 +110,10 @@ func TestUserService_Login(t *testing.T) {
 	t.Run("should return error if user doesn't exist", func(t *testing.T) {
 		t.Parallel()
 
-		var userNil *entities.User
-
 		userRepoMock := &mockedUserRepository{}
 		userRepoMock.
 			On("GetByEmail", mock.Anything, mock.Anything).
-			Return(userNil, gorm.ErrRecordNotFound)
+			Return(nil, domain_errors.NewErrEntityNotFound("user"))
 
 		userService := services.NewUserService(userRepoMock)
 		user, err := userService.Login(
@@ -140,6 +150,38 @@ func TestUserService_Login(t *testing.T) {
 			},
 		)
 		assert.NotNil(t, err)
+		assert.Equal(
+			t,
+			"INCORRECT_EMAIL_OR_PASSWORD",
+			err.Code(),
+		)
 		assert.Nil(t, user)
+	})
+
+	t.Run("should return user if login is successful", func(t *testing.T) {
+		t.Parallel()
+
+		userFromDB := entities.UserFromDB(
+			1,
+			"w8vCq@example.com",
+			"",
+		)
+		userFromDB.ChangePassword("password")
+
+		userRepoMock := &mockedUserRepository{}
+		userRepoMock.
+			On("GetByEmail", mock.Anything, mock.Anything).
+			Return(userFromDB, nil)
+
+		userService := services.NewUserService(userRepoMock)
+		user, err := userService.Login(
+			context.Background(),
+			&dto.LoginDTO{
+				Email:    "w8vCq@example.com",
+				Password: "password",
+			},
+		)
+		assert.Nil(t, err)
+		assert.NotNil(t, user)
 	})
 }

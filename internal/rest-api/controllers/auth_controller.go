@@ -3,6 +3,7 @@ package controllers
 import (
 	"net/http"
 
+	domain_errors "go-jwt-auth/internal/rest-api/domain-errors"
 	"go-jwt-auth/internal/rest-api/dto"
 	"go-jwt-auth/internal/rest-api/entities"
 	"go-jwt-auth/internal/rest-api/middlewares"
@@ -13,6 +14,10 @@ import (
 )
 
 const cookieName = "refreshToken"
+
+var ErrRefreshTokenNotFound = domain_errors.NewErrEntityNotFound(
+	"refresh token not found in cookie",
+)
 
 type AuthController struct {
 	authService services.AuthService
@@ -56,13 +61,16 @@ func (ac *AuthController) register(c *gin.Context) {
 
 	registerDTO, err := gin_utils.DecodeJSON[*dto.RegisterDTO](c)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		writeError(c, domain_errors.NewErrInvalidInput(
+			"INVALID_BODY",
+			err.Error(),
+		))
 		return
 	}
 
-	user, err := ac.authService.Register(c, registerDTO)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+	user, derr := ac.authService.Register(c, registerDTO)
+	if derr != nil {
+		writeError(c, derr)
 		return
 	}
 
@@ -86,13 +94,16 @@ func (ac *AuthController) login(c *gin.Context) {
 
 	loginDTO, err := gin_utils.DecodeJSON[*dto.LoginDTO](c)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		writeError(c, domain_errors.NewErrInvalidInput(
+			"INVALID_BODY",
+			err.Error(),
+		))
 		return
 	}
 
-	user, tokens, err := ac.authService.Login(c, loginDTO)
-	if err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
+	user, tokens, derr := ac.authService.Login(c, loginDTO)
+	if derr != nil {
+		writeError(c, derr)
 		return
 	}
 
@@ -119,13 +130,17 @@ func (ac *AuthController) refreshTokens(c *gin.Context) {
 
 	refreshToken, err := c.Cookie(cookieName)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		writeErrorWithStatus(
+			c,
+			http.StatusUnauthorized,
+			ErrRefreshTokenNotFound,
+		)
 		return
 	}
 
-	tokens, err := ac.authService.RefreshTokens(c, refreshToken)
-	if err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
+	tokens, derr := ac.authService.RefreshTokens(c, refreshToken)
+	if derr != nil {
+		writeError(c, derr)
 		return
 	}
 
@@ -145,7 +160,7 @@ func (ac *AuthController) me(c *gin.Context) {
 
 	user, err := ac.authService.GetUser(c, email.(string))
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		writeError(c, err)
 		return
 	}
 
@@ -164,7 +179,7 @@ func (ac *AuthController) activeSessions(c *gin.Context) {
 
 	sessions, err := ac.authService.ActiveSessions(c, email.(string))
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		writeError(c, err)
 		return
 	}
 
@@ -189,16 +204,20 @@ type LogoutResponeDTO struct {
 func (ac *AuthController) logout(c *gin.Context) {
 	refreshToken, err := c.Cookie(cookieName)
 	if err != nil {
+		// Should logout in any case
+
+		// Delete refresh token from cookie
+		resetCookie(c, cookieName)
+
 		c.JSON(http.StatusOK, gin.H{"message": err.Error()})
-		return
+	} else {
+		ac.authService.Logout(c, refreshToken)
+
+		// Delete refresh token from cookie
+		resetCookie(c, cookieName)
+
+		c.JSON(http.StatusOK, gin.H{"message": "Logged out"})
 	}
-
-	ac.authService.Logout(c, refreshToken)
-
-	// Delete refresh token from cookie
-	resetCookie(c, cookieName)
-
-	c.JSON(http.StatusOK, gin.H{"message": "Logged out"})
 }
 
 func setRefreshTokenCookie(
@@ -213,4 +232,34 @@ func setRefreshTokenCookie(
 
 func resetCookie(c *gin.Context, name string) {
 	c.SetCookie(name, "", -1, "/", "", false, true)
+}
+
+func writeError(
+	c *gin.Context,
+	err domain_errors.ErrDomain,
+) {
+	status := http.StatusInternalServerError
+
+	switch {
+	case err.Kind() == domain_errors.EntityNotFound:
+		status = http.StatusNotFound
+	case err.Kind() == domain_errors.InvalidInput:
+		status = http.StatusConflict
+	case err.Kind() == domain_errors.InvalidInput:
+		status = http.StatusBadRequest
+	}
+
+	writeErrorWithStatus(c, status, err)
+}
+
+func writeErrorWithStatus(
+	c *gin.Context,
+	status int,
+	err domain_errors.ErrDomain,
+) {
+	c.JSON(status, gin.H{
+		"kind":  err.Kind(),
+		"code":  err.Code(),
+		"error": err.Error(),
+	})
 }

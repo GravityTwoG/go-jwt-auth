@@ -3,6 +3,8 @@ package repositories
 import (
 	"context"
 
+	"go-jwt-auth/internal/rest-api/database"
+	domain_errors "go-jwt-auth/internal/rest-api/domain-errors"
 	"go-jwt-auth/internal/rest-api/entities"
 	"go-jwt-auth/internal/rest-api/models"
 	"go-jwt-auth/internal/rest-api/services"
@@ -23,14 +25,14 @@ func NewUserRepository(db *gorm.DB) services.UserRepository {
 func (r *userRepository) Create(
 	ctx context.Context,
 	user *entities.User,
-) error {
+) domain_errors.ErrDomain {
 
 	userModel := models.UserFromEntity(user)
 
 	err := r.db.WithContext(ctx).Create(userModel).Error
 
 	if err != nil {
-		return err
+		return database.MapGormErrors(err, "user")
 	}
 	*user = *models.UserFromModel(userModel)
 
@@ -40,7 +42,7 @@ func (r *userRepository) Create(
 func (r *userRepository) GetByEmail(
 	ctx context.Context,
 	email string,
-) (*entities.User, error) {
+) (*entities.User, domain_errors.ErrDomain) {
 
 	userModel := models.User{}
 
@@ -49,7 +51,7 @@ func (r *userRepository) GetByEmail(
 		First(&userModel).Error
 
 	if err != nil {
-		return nil, err
+		return nil, database.MapGormErrors(err, "user")
 	}
 
 	return models.UserFromModel(&userModel), nil

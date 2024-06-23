@@ -2,6 +2,8 @@ package repositories
 
 import (
 	"context"
+	"go-jwt-auth/internal/rest-api/database"
+	domain_errors "go-jwt-auth/internal/rest-api/domain-errors"
 	"go-jwt-auth/internal/rest-api/entities"
 	"go-jwt-auth/internal/rest-api/models"
 	"go-jwt-auth/internal/rest-api/services"
@@ -22,13 +24,13 @@ func NewRefreshTokenRepository(db *gorm.DB) services.RefreshTokenRepository {
 func (r *refreshTokenRepository) Create(
 	ctx context.Context,
 	refreshToken *entities.RefreshToken,
-) error {
+) domain_errors.ErrDomain {
 
 	model := models.RefreshTokenFromEntity(refreshToken)
 
 	err := r.db.WithContext(ctx).Preload("User").Create(model).Error
 	if err != nil {
-		return err
+		return database.MapGormErrors(err, "refresh token")
 	}
 	*refreshToken = *models.RefreshTokenFromModel(model)
 	return nil
@@ -37,7 +39,7 @@ func (r *refreshTokenRepository) Create(
 func (r *refreshTokenRepository) GetByToken(
 	ctx context.Context,
 	token string,
-) (*entities.RefreshToken, error) {
+) (*entities.RefreshToken, domain_errors.ErrDomain) {
 
 	refreshToken := &models.RefreshToken{}
 	err := r.db.WithContext(ctx).
@@ -46,7 +48,7 @@ func (r *refreshTokenRepository) GetByToken(
 		First(refreshToken).Error
 
 	if err != nil {
-		return nil, err
+		return nil, database.MapGormErrors(err, "refresh token")
 	}
 
 	return models.RefreshTokenFromModel(refreshToken), nil
@@ -55,7 +57,7 @@ func (r *refreshTokenRepository) GetByToken(
 func (r *refreshTokenRepository) GetByUserEmail(
 	ctx context.Context,
 	email string,
-) ([]*entities.RefreshToken, error) {
+) ([]*entities.RefreshToken, domain_errors.ErrDomain) {
 
 	refreshTokens := []*models.RefreshToken{}
 	err := r.db.WithContext(ctx).
@@ -63,7 +65,7 @@ func (r *refreshTokenRepository) GetByUserEmail(
 		Where(&models.RefreshToken{User: models.User{Email: email}}).
 		Find(&refreshTokens).Error
 	if err != nil {
-		return nil, err
+		return nil, database.MapGormErrors(err, "refresh token")
 	}
 
 	entities := make([]*entities.RefreshToken, len(refreshTokens))
@@ -77,19 +79,28 @@ func (r *refreshTokenRepository) GetByUserEmail(
 func (r *refreshTokenRepository) Delete(
 	ctx context.Context,
 	refreshToken *entities.RefreshToken,
-) error {
+) domain_errors.ErrDomain {
 
 	model := models.RefreshTokenFromEntity(refreshToken)
 	err := r.db.WithContext(ctx).Delete(model).Error
 	if err != nil {
-		return err
+		return database.MapGormErrors(err, "refresh token")
 	}
 	return nil
 }
 
-func (r *refreshTokenRepository) DeleteExpired(ctx context.Context) error {
-	return r.db.WithContext(ctx).
+func (r *refreshTokenRepository) DeleteExpired(
+	ctx context.Context,
+) domain_errors.ErrDomain {
+
+	err := r.db.WithContext(ctx).
 		Where("created_at + interval '1 second' * ttlsec < now()").
 		Delete(&models.RefreshToken{}).
 		Error
+
+	if err != nil {
+		return database.MapGormErrors(err, "refresh token")
+	}
+
+	return nil
 }

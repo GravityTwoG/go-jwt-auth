@@ -17,29 +17,60 @@ type Tokens struct {
 }
 
 type RefreshTokenRepository interface {
-	Create(ctx context.Context, refreshToken *entities.RefreshToken) error
+	Create(
+		ctx context.Context,
+		refreshToken *entities.RefreshToken,
+	) domain_errors.ErrDomain
 
-	GetByToken(ctx context.Context, token string) (*entities.RefreshToken, error)
+	GetByToken(
+		ctx context.Context,
+		token string,
+	) (*entities.RefreshToken, domain_errors.ErrDomain)
 
-	GetByUserEmail(ctx context.Context, email string) ([]*entities.RefreshToken, error)
+	GetByUserEmail(
+		ctx context.Context,
+		email string,
+	) ([]*entities.RefreshToken, domain_errors.ErrDomain)
 
-	Delete(ctx context.Context, refreshToken *entities.RefreshToken) error
+	Delete(
+		ctx context.Context,
+		refreshToken *entities.RefreshToken,
+	) domain_errors.ErrDomain
 
-	DeleteExpired(ctx context.Context) error
+	DeleteExpired(
+		ctx context.Context) domain_errors.ErrDomain
 }
 
 type AuthService interface {
-	Register(ctx context.Context, dto *dto.RegisterDTO) (*entities.User, error)
+	Register(
+		ctx context.Context,
+		dto *dto.RegisterDTO,
+	) (*entities.User, domain_errors.ErrDomain)
 
-	Login(ctx context.Context, dto *dto.LoginDTO) (*entities.User, *Tokens, error)
+	Login(
+		ctx context.Context,
+		dto *dto.LoginDTO,
+	) (*entities.User, *Tokens, domain_errors.ErrDomain)
 
-	RefreshTokens(ctx context.Context, refreshToken string) (*Tokens, error)
+	RefreshTokens(
+		ctx context.Context,
+		refreshToken string,
+	) (*Tokens, domain_errors.ErrDomain)
 
-	GetUser(ctx context.Context, email string) (*entities.User, error)
+	GetUser(
+		ctx context.Context,
+		email string,
+	) (*entities.User, domain_errors.ErrDomain)
 
-	ActiveSessions(ctx context.Context, email string) ([]*entities.RefreshToken, error)
+	ActiveSessions(
+		ctx context.Context,
+		email string,
+	) ([]*entities.RefreshToken, domain_errors.ErrDomain)
 
-	Logout(ctx context.Context, refreshToken string) error
+	Logout(
+		ctx context.Context,
+		refreshToken string,
+	) domain_errors.ErrDomain
 
 	RunScheduledTasks(ctx context.Context)
 }
@@ -76,7 +107,7 @@ func NewAuthService(
 func (s *authService) Register(
 	ctx context.Context,
 	registerDTO *dto.RegisterDTO,
-) (*entities.User, error) {
+) (*entities.User, domain_errors.ErrDomain) {
 
 	return s.userService.Register(ctx, registerDTO)
 }
@@ -84,7 +115,7 @@ func (s *authService) Register(
 func (s *authService) Login(
 	ctx context.Context,
 	loginDTO *dto.LoginDTO,
-) (*entities.User, *Tokens, error) {
+) (*entities.User, *Tokens, domain_errors.ErrDomain) {
 
 	user, err := s.userService.Login(ctx, loginDTO)
 	if err != nil {
@@ -117,7 +148,7 @@ func (s *authService) Login(
 func (s *authService) RefreshTokens(
 	ctx context.Context,
 	refreshToken string,
-) (*Tokens, error) {
+) (*Tokens, domain_errors.ErrDomain) {
 	existingRefreshToken, err := s.refreshTokenRepository.
 		GetByToken(ctx, refreshToken)
 	if err != nil {
@@ -125,13 +156,10 @@ func (s *authService) RefreshTokens(
 	}
 
 	if existingRefreshToken.Expired() {
-		return nil, domain_errors.NewErrInvalidInput("refresh token expired")
-	}
-
-	// delete old token
-	err = s.refreshTokenRepository.Delete(ctx, existingRefreshToken)
-	if err != nil {
-		return nil, err
+		return nil, domain_errors.NewErrInvalidInput(
+			"REFRESH_TOKEN_EXPIRED",
+			"refresh token expired",
+		)
 	}
 
 	// create new token
@@ -140,6 +168,12 @@ func (s *authService) RefreshTokens(
 		s.refreshTokenTTLsec,
 	)
 	err = s.refreshTokenRepository.Create(ctx, newRefreshToken)
+	if err != nil {
+		return nil, err
+	}
+
+	// delete old token
+	err = s.refreshTokenRepository.Delete(ctx, existingRefreshToken)
 	if err != nil {
 		return nil, err
 	}
@@ -159,7 +193,7 @@ func (s *authService) RefreshTokens(
 
 func (s *authService) newJWT(
 	user *entities.User,
-) (string, error) {
+) (string, domain_errors.ErrDomain) {
 
 	token := jwt.New(jwt.SigningMethodHS256)
 	claims := token.Claims.(jwt.MapClaims)
@@ -168,7 +202,7 @@ func (s *authService) newJWT(
 
 	tokenString, err := token.SignedString(s.jwtSecretKey)
 	if err != nil {
-		return "", err
+		return "", domain_errors.NewErrUnknown(err)
 	}
 
 	return tokenString, nil
@@ -177,7 +211,7 @@ func (s *authService) newJWT(
 func (s *authService) GetUser(
 	ctx context.Context,
 	email string,
-) (*entities.User, error) {
+) (*entities.User, domain_errors.ErrDomain) {
 
 	return s.userService.GetByEmail(ctx, email)
 }
@@ -185,7 +219,7 @@ func (s *authService) GetUser(
 func (s *authService) ActiveSessions(
 	ctx context.Context,
 	email string,
-) ([]*entities.RefreshToken, error) {
+) ([]*entities.RefreshToken, domain_errors.ErrDomain) {
 
 	return s.refreshTokenRepository.GetByUserEmail(ctx, email)
 }
@@ -193,7 +227,7 @@ func (s *authService) ActiveSessions(
 func (s *authService) Logout(
 	ctx context.Context,
 	refreshToken string,
-) error {
+) domain_errors.ErrDomain {
 	model, err := s.refreshTokenRepository.GetByToken(ctx, refreshToken)
 	if err != nil {
 		return err

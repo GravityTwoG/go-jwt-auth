@@ -20,12 +20,13 @@ type User struct {
 func NewUser(
 	email string,
 	password string,
-) (*User, error) {
+) (*User, domain_errors.ErrDomain) {
 	user := User{}
 
 	if len(email) < 3 || len(email) > 256 {
 		return nil, domain_errors.NewErrInvalidInput(
-			"email length must be between 3 and 256 characters",
+			"EMAIL_INVALID_LENGTH",
+			"email must be between 3 and 256 characters",
 		)
 	}
 	user.email = email
@@ -62,10 +63,11 @@ func (u *User) GetPassword() string {
 	return u.password
 }
 
-func (u *User) ChangePassword(rawPassword string) error {
+func (u *User) ChangePassword(rawPassword string) domain_errors.ErrDomain {
 	if len(rawPassword) < 8 || len(rawPassword) > 64 {
 		return domain_errors.NewErrInvalidInput(
-			"password length must be between 8 and 64 characters",
+			"PASSWORD_LENGTH_INVALID",
+			"password must be between 8 and 64 characters",
 		)
 	}
 
@@ -81,14 +83,16 @@ func (u *User) ComparePassword(rawPassword string) bool {
 	return comparePasswords(u.password, rawPassword)
 }
 
-func hashPassword(password string) (string, error) {
+func hashPassword(password string) (string, domain_errors.ErrDomain) {
 	hashedPassword, err := bcrypt.GenerateFromPassword(
 		[]byte(password),
 		bcrypt.DefaultCost,
 	)
 
 	if err != nil {
-		return "", err
+		return "", domain_errors.NewErrUnknown(
+			err,
+		)
 	}
 	return string(hashedPassword), nil
 }
