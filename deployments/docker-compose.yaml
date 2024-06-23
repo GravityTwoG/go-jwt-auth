@@ -6,6 +6,7 @@ services:
       context: ../deployments/rest-api-local
     volumes:
       - ../internal:/internal
+      - ../pkg:/pkg
       - ../cmd:/cmd
       - ../docs:/docs
       - ../.go/pkg:/go/pkg
