@@ -14,6 +14,7 @@ import (
 	"go-jwt-auth/internal/rest-api/repositories"
 	"go-jwt-auth/internal/rest-api/services"
 
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
@@ -34,6 +35,8 @@ import (
 // @name						Authorization
 func main() {
 	r := gin.Default()
+
+	r.Use(corsMiddleware([]string{"http://localhost:5173"}))
 
 	cfg := config.MustLoadConfig()
 
@@ -74,4 +77,12 @@ func main() {
 	))
 
 	r.Run(fmt.Sprintf(":%s", cfg.Port))
+}
+
+func corsMiddleware(allowedOrigins []string) gin.HandlerFunc {
+	corsConfig := cors.DefaultConfig()
+	corsConfig.AllowOrigins = allowedOrigins
+	corsConfig.AllowCredentials = true
+	corsConfig.AllowHeaders = append(corsConfig.AllowHeaders, "Authorization")
+	return cors.New(corsConfig)
 }

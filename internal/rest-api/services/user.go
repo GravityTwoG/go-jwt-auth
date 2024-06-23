@@ -65,11 +65,15 @@ func (s *userService) Login(
 
 	user, err := s.userRepo.GetByEmail(ctx, loginDTO.Email)
 	if err != nil {
+		if err.Error() == "record not found" {
+			return nil, fmt.Errorf("INCORRECT_EMAIL_OR_PASSWORD")
+		}
+
 		return nil, err
 	}
 
 	if !user.ComparePassword(loginDTO.Password) {
-		return nil, fmt.Errorf("INCORRECT_USERNAME_OR_PASSWORD")
+		return nil, fmt.Errorf("INCORRECT_EMAIL_OR_PASSWORD")
 	}
 
 	return user, nil

@@ -168,7 +168,7 @@ func (ac *AuthController) activeSessions(c *gin.Context) {
 		return
 	}
 
-	var sessionsDTO []string
+	sessionsDTO := []string{}
 	for _, session := range sessions {
 		sessionsDTO = append(sessionsDTO, session.GetToken())
 	}
