@@ -46,142 +46,148 @@ func (m *mockedUserRepository) GetByEmail(
 	return user.(*entities.User), nil
 }
 
-func TestUserService_Register(t *testing.T) {
-	t.Run("should return error if passwords don't match", func(t *testing.T) {
-		t.Parallel()
+type registerTest struct {
+	name            string
+	registerDTO     *dto.RegisterDTO
+	mockSetup       func(*mockedUserRepository)
+	expectedErr     bool
+	expectedErrCode string
+}
 
-		userService := services.NewUserService(nil)
-		user, err := userService.Register(
-			context.Background(),
-			&dto.RegisterDTO{
+func TestUserService_Register(t *testing.T) {
+	tests := []registerTest{
+		{
+			name: "should return error if passwords don't match",
+			registerDTO: &dto.RegisterDTO{
 				Email:     "w8vCq@example.com",
 				Password:  "password",
 				Password2: "not-the-same",
 			},
-		)
-		assert.NotNil(t, err)
-		assert.Nil(t, user)
-	})
-
-	t.Run("should return user if registration is successful", func(t *testing.T) {
-		t.Parallel()
-
-		userRepoMock := &mockedUserRepository{}
-		userRepoMock.
-			On("Create", mock.Anything, mock.Anything).
-			Return(nil)
-
-		userService := services.NewUserService(userRepoMock)
-		user, err := userService.Register(
-			context.Background(),
-			&dto.RegisterDTO{
+			mockSetup:       func(*mockedUserRepository) {},
+			expectedErr:     true,
+			expectedErrCode: "PASSWORDS_DONT_MATCH",
+		},
+		{
+			name: "should return user if registration is successful",
+			registerDTO: &dto.RegisterDTO{
 				Email:     "w8vCq@example.com",
 				Password:  "password",
 				Password2: "password",
 			},
-		)
-		assert.Nil(t, err)
-		assert.NotNil(t, user)
-	})
-
-	t.Run("should return error if user already exists", func(t *testing.T) {
-		t.Parallel()
-
-		userRepoMock := &mockedUserRepository{}
-		userRepoMock.
-			On("Create", mock.Anything, mock.Anything).
-			Return(domain_errors.NewErrEntityAlreadyExists("user"))
-
-		userService := services.NewUserService(userRepoMock)
-		user, err := userService.Register(
-			context.Background(),
-			&dto.RegisterDTO{
+			mockSetup: func(m *mockedUserRepository) {
+				m.On("Create", mock.Anything, mock.Anything).Return(nil)
+			},
+			expectedErr: false,
+		},
+		{
+			name: "should return error if user already exists",
+			registerDTO: &dto.RegisterDTO{
 				Email:     "w8vCq@example.com",
 				Password:  "password",
 				Password2: "password",
 			},
-		)
-		assert.NotNil(t, err)
-		assert.Nil(t, user)
-	})
+			mockSetup: func(m *mockedUserRepository) {
+				m.On("Create", mock.Anything, mock.Anything).Return(domain_errors.NewErrEntityAlreadyExists("user"))
+			},
+			expectedErr:     true,
+			expectedErrCode: "EMAIL_ALREADY_EXISTS",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			userRepoMock := &mockedUserRepository{}
+			tt.mockSetup(userRepoMock)
+
+			userService := services.NewUserService(userRepoMock)
+			user, err := userService.Register(context.Background(), tt.registerDTO)
+
+			if tt.expectedErr {
+				assert.NotNil(t, err)
+				assert.Nil(t, user)
+				if tt.expectedErrCode != "" {
+					assert.Contains(t, err.Code(), tt.expectedErrCode)
+				}
+			} else {
+				assert.Nil(t, err)
+				assert.NotNil(t, user)
+			}
+		})
+	}
+}
+
+type loginTest struct {
+	name            string
+	loginDTO        *dto.LoginDTO
+	mockSetup       func(*mockedUserRepository)
+	expectedErr     bool
+	expectedErrCode string
 }
 
 func TestUserService_Login(t *testing.T) {
-	t.Run("should return error if user doesn't exist", func(t *testing.T) {
-		t.Parallel()
-
-		userRepoMock := &mockedUserRepository{}
-		userRepoMock.
-			On("GetByEmail", mock.Anything, mock.Anything).
-			Return(nil, domain_errors.NewErrEntityNotFound("user"))
-
-		userService := services.NewUserService(userRepoMock)
-		user, err := userService.Login(
-			context.Background(),
-			&dto.LoginDTO{
+	tests := []loginTest{
+		{
+			name: "should return error if user doesn't exist",
+			loginDTO: &dto.LoginDTO{
 				Email:    "w8vCq@example.com",
 				Password: "password",
 			},
-		)
-		assert.NotNil(t, err)
-		assert.Nil(t, user)
-	})
-
-	t.Run("should return error if password is incorrect", func(t *testing.T) {
-		t.Parallel()
-
-		userFromDB := entities.UserFromDB(
-			1,
-			"w8vCq@example.com",
-			"another-password",
-		)
-
-		userRepoMock := &mockedUserRepository{}
-		userRepoMock.
-			On("GetByEmail", mock.Anything, mock.Anything).
-			Return(userFromDB, nil)
-
-		userService := services.NewUserService(userRepoMock)
-		user, err := userService.Login(
-			context.Background(),
-			&dto.LoginDTO{
+			mockSetup: func(m *mockedUserRepository) {
+				m.On("GetByEmail", mock.Anything, mock.Anything).Return(nil, domain_errors.NewErrEntityNotFound("user"))
+			},
+			expectedErr:     true,
+			expectedErrCode: "INCORRECT_EMAIL_OR_PASSWORD",
+		},
+		{
+			name: "should return error if password is incorrect",
+			loginDTO: &dto.LoginDTO{
 				Email:    "w8vCq@example.com",
 				Password: "password",
 			},
-		)
-		assert.NotNil(t, err)
-		assert.Equal(
-			t,
-			"INCORRECT_EMAIL_OR_PASSWORD",
-			err.Code(),
-		)
-		assert.Nil(t, user)
-	})
-
-	t.Run("should return user if login is successful", func(t *testing.T) {
-		t.Parallel()
-
-		userFromDB := entities.UserFromDB(
-			1,
-			"w8vCq@example.com",
-			"",
-		)
-		userFromDB.ChangePassword("password")
-
-		userRepoMock := &mockedUserRepository{}
-		userRepoMock.
-			On("GetByEmail", mock.Anything, mock.Anything).
-			Return(userFromDB, nil)
-
-		userService := services.NewUserService(userRepoMock)
-		user, err := userService.Login(
-			context.Background(),
-			&dto.LoginDTO{
+			mockSetup: func(m *mockedUserRepository) {
+				userFromDB := entities.UserFromDB(1, "w8vCq@example.com", "another-password")
+				m.On("GetByEmail", mock.Anything, mock.Anything).Return(userFromDB, nil)
+			},
+			expectedErr:     true,
+			expectedErrCode: "INCORRECT_EMAIL_OR_PASSWORD",
+		},
+		{
+			name: "should return user if login is successful",
+			loginDTO: &dto.LoginDTO{
 				Email:    "w8vCq@example.com",
 				Password: "password",
 			},
-		)
-		assert.Nil(t, err)
-		assert.NotNil(t, user)
-	})
+			mockSetup: func(m *mockedUserRepository) {
+				userFromDB := entities.UserFromDB(1, "w8vCq@example.com", "")
+				userFromDB.ChangePassword("password")
+				m.On("GetByEmail", mock.Anything, mock.Anything).Return(userFromDB, nil)
+			},
+			expectedErr: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			userRepoMock := &mockedUserRepository{}
+			tt.mockSetup(userRepoMock)
+
+			userService := services.NewUserService(userRepoMock)
+			user, err := userService.Login(context.Background(), tt.loginDTO)
+
+			if tt.expectedErr {
+				assert.NotNil(t, err)
+				assert.Nil(t, user)
+				if tt.expectedErrCode != "" {
+					assert.Contains(t, err.Code(), tt.expectedErrCode)
+				}
+			} else {
+				assert.Nil(t, err)
+				assert.NotNil(t, user)
+			}
+		})
+	}
 }
