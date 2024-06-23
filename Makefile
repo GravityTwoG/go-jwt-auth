@@ -17,6 +17,9 @@ migrate:
 test:
 	go test ./...
 
+test-tparse:
+	set -o pipefail && go test -json ./... | tparse -all
+
 infra:
 	cd deployments && docker-compose up
 
