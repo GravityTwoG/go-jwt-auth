@@ -8,6 +8,9 @@ fmt:
 app-build:
 	go build -o app.bin ./cmd/rest-api/main.go
 
+app-dockerize:
+	docker build -f ./deployments/rest-api-prod/Dockerfile -t go-jwt-auth . 
+
 app-run:
 	go run ./cmd/rest-api/main.go
 
