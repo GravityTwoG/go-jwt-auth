@@ -15,15 +15,27 @@ type RefreshToken struct {
 	userId uint
 	user   *User
 
+	ip        string
+	userAgent string
+
 	createdAt time.Time
 	updatedAt time.Time
 }
 
-func NewRefreshToken(userId uint, ttlSec int) *RefreshToken {
+func NewRefreshToken(
+	userId uint,
+	ttlSec int,
+	ip string,
+	userAgent string,
+) *RefreshToken {
 	return &RefreshToken{
-		userId: userId,
 		token:  uuid.New().String(),
 		ttlSec: ttlSec,
+
+		userId: userId,
+
+		ip:        ip,
+		userAgent: userAgent,
 	}
 }
 
@@ -33,15 +45,23 @@ func RefreshTokenFromDB(
 	ttlSec int,
 	userId uint,
 	user *User,
+	ip string,
+	userAgent string,
 	createdAt time.Time,
 	updatedAt time.Time,
 ) *RefreshToken {
 	return &RefreshToken{
-		id:        id,
-		token:     token,
-		ttlSec:    ttlSec,
-		userId:    userId,
-		user:      user,
+		id: id,
+
+		token:  token,
+		ttlSec: ttlSec,
+
+		userId: userId,
+		user:   user,
+
+		ip:        ip,
+		userAgent: userAgent,
+
 		createdAt: createdAt,
 		updatedAt: updatedAt,
 	}
@@ -65,6 +85,14 @@ func (rt *RefreshToken) GetUserId() uint {
 
 func (rt *RefreshToken) GetUser() *User {
 	return rt.user
+}
+
+func (rt *RefreshToken) GetIP() string {
+	return rt.ip
+}
+
+func (rt *RefreshToken) GetUserAgent() string {
+	return rt.userAgent
 }
 
 func (rt *RefreshToken) GetCreatedAt() time.Time {

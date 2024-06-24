@@ -40,6 +40,22 @@ definitions:
     - password
     - password2
     type: object
+  dto.SessionDTO:
+    properties:
+      created_at:
+        type: string
+      ip:
+        type: string
+      userAgent:
+        type: string
+    type: object
+  dto.SessionsDTO:
+    properties:
+      sessions:
+        items:
+          $ref: '#/definitions/dto.SessionDTO'
+        type: array
+    type: object
   dto.UserDTO:
     properties:
       email:
@@ -66,9 +82,7 @@ paths:
         "200":
           description: OK
           schema:
-            items:
-              type: string
-            type: array
+            $ref: '#/definitions/dto.SessionsDTO'
       security:
       - ApiKeyAuth: []
       summary: Get active sessions

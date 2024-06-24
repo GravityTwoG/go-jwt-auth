@@ -16,6 +16,12 @@ type Tokens struct {
 	RefreshToken entities.RefreshToken
 }
 
+type RefreshTokensDTO struct {
+	OldToken  string
+	IP        string
+	UserAgent string
+}
+
 type RefreshTokenRepository interface {
 	Create(
 		ctx context.Context,
@@ -50,11 +56,13 @@ type AuthService interface {
 	Login(
 		ctx context.Context,
 		dto *dto.LoginDTO,
+		ip string,
+		userAgent string,
 	) (*entities.User, *Tokens, domainerrors.ErrDomain)
 
 	RefreshTokens(
 		ctx context.Context,
-		refreshToken string,
+		dto *RefreshTokensDTO,
 	) (*Tokens, domainerrors.ErrDomain)
 
 	GetUserByID(
@@ -115,6 +123,8 @@ func (s *authService) Register(
 func (s *authService) Login(
 	ctx context.Context,
 	loginDTO *dto.LoginDTO,
+	ip string,
+	userAgent string,
 ) (*entities.User, *Tokens, domainerrors.ErrDomain) {
 
 	user, err := s.userService.Login(ctx, loginDTO)
@@ -130,6 +140,8 @@ func (s *authService) Login(
 	refreshToken := entities.NewRefreshToken(
 		user.GetId(),
 		s.refreshTokenTTLsec,
+		ip,
+		userAgent,
 	)
 
 	err = s.refreshTokenRepository.Create(ctx, refreshToken)
@@ -147,10 +159,10 @@ func (s *authService) Login(
 
 func (s *authService) RefreshTokens(
 	ctx context.Context,
-	refreshToken string,
+	dto *RefreshTokensDTO,
 ) (*Tokens, domainerrors.ErrDomain) {
 	existingRefreshToken, err := s.refreshTokenRepository.
-		GetByToken(ctx, refreshToken)
+		GetByToken(ctx, dto.OldToken)
 	if err != nil {
 		return nil, err
 	}
@@ -166,6 +178,8 @@ func (s *authService) RefreshTokens(
 	newRefreshToken := entities.NewRefreshToken(
 		existingRefreshToken.GetUserId(),
 		s.refreshTokenTTLsec,
+		dto.IP,
+		dto.UserAgent,
 	)
 	err = s.refreshTokenRepository.Create(ctx, newRefreshToken)
 	if err != nil {

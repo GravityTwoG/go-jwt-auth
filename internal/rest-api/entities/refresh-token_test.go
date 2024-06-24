@@ -16,10 +16,16 @@ func TestRefreshTokenExpiry(t *testing.T) {
 		min30 := 1800
 		token := entities.RefreshTokenFromDB(
 			0,
+
 			"token",
 			min30,
+
 			1,
 			&entities.User{},
+
+			"127.0.0.1",
+			"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/89.0.142.86 Safari/537.36",
+
 			time.Now().Add(-1*time.Hour),
 			time.Now().Add(-1*time.Hour),
 		)
@@ -33,10 +39,16 @@ func TestRefreshTokenExpiry(t *testing.T) {
 		hour2 := 7200
 		token := entities.RefreshTokenFromDB(
 			0,
+
 			"token",
 			hour2,
+
 			1,
 			&entities.User{},
+
+			"127.0.0.1",
+			"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/89.0.142.86 Safari/537.36",
+
 			time.Now().Add(-1*time.Hour),
 			time.Now().Add(-1*time.Hour),
 		)

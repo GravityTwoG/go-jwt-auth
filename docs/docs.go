@@ -38,10 +38,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "type": "array",
-                            "items": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/dto.SessionsDTO"
                         }
                     }
                 }
@@ -247,6 +244,31 @@ const docTemplate = `{
                 },
                 "password2": {
                     "type": "string"
+                }
+            }
+        },
+        "dto.SessionDTO": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "ip": {
+                    "type": "string"
+                },
+                "userAgent": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.SessionsDTO": {
+            "type": "object",
+            "properties": {
+                "sessions": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.SessionDTO"
+                    }
                 }
             }
         },

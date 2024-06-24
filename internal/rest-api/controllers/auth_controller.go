@@ -101,7 +101,15 @@ func (ac *AuthController) login(c *gin.Context) {
 		return
 	}
 
-	user, tokens, derr := ac.authService.Login(c, loginDTO)
+	ip := c.ClientIP()
+	userAgent := c.GetHeader("User-Agent")
+
+	user, tokens, derr := ac.authService.Login(
+		c,
+		loginDTO,
+		ip,
+		userAgent,
+	)
 	if derr != nil {
 		writeError(c, derr)
 		return
@@ -138,7 +146,12 @@ func (ac *AuthController) refreshTokens(c *gin.Context) {
 		return
 	}
 
-	tokens, derr := ac.authService.RefreshTokens(c, refreshToken)
+	dto := &services.RefreshTokensDTO{
+		OldToken:  refreshToken,
+		IP:        c.ClientIP(),
+		UserAgent: c.GetHeader("User-Agent"),
+	}
+	tokens, derr := ac.authService.RefreshTokens(c, dto)
 	if derr != nil {
 		writeError(c, derr)
 		return
@@ -172,7 +185,7 @@ func (ac *AuthController) me(c *gin.Context) {
 // @Description	Get active sessions (list of refresh tokens)
 // @Security	ApiKeyAuth
 // @Produce	json
-// @Success	200	{array}	string
+// @Success	200	{object}	dto.SessionsDTO
 // @Router		/active-sessions [get]
 func (ac *AuthController) activeSessions(c *gin.Context) {
 	userDTO := middlewares.ExtractUser(c)
@@ -183,12 +196,9 @@ func (ac *AuthController) activeSessions(c *gin.Context) {
 		return
 	}
 
-	sessionsDTO := []string{}
-	for _, session := range sessions {
-		sessionsDTO = append(sessionsDTO, session.GetToken())
-	}
+	sessionsDTO := dto.SessionsDTOFromEntities(sessions)
 
-	c.JSON(http.StatusOK, gin.H{"sessions": sessionsDTO})
+	c.JSON(http.StatusOK, sessionsDTO)
 }
 
 type LogoutResponeDTO struct {

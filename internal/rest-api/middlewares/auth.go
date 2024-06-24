@@ -59,11 +59,13 @@ func AuthMiddleware(jwtSecretKey []byte) gin.HandlerFunc {
 }
 
 func ExtractUser(c *gin.Context) *dto.UserDTO {
-	user, ok := c.Get("user")
+	maybeUser, ok := c.Get("user")
 	if !ok {
 		return nil
 	}
-	return user.(*dto.UserDTO)
+
+	user := maybeUser.(dto.UserDTO)
+	return &user
 }
 
 // Checks if provided bearer token is expired or it is not provided.
