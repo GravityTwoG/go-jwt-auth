@@ -2,6 +2,7 @@ package middlewares
 
 import (
 	"errors"
+	"go-jwt-auth/internal/rest-api/dto"
 	"net/http"
 	"strings"
 	"time"
@@ -42,8 +43,12 @@ func AuthMiddleware(jwtSecretKey []byte) gin.HandlerFunc {
 				return
 			}
 
-			// Set the claims to the context
-			c.Set("email", claims["email"])
+			// Set user to the context
+			userDTO := dto.UserDTO{
+				ID:    uint(claims["id"].(float64)),
+				Email: claims["email"].(string),
+			}
+			c.Set("user", userDTO)
 			c.Next()
 			return
 		}
@@ -51,6 +56,14 @@ func AuthMiddleware(jwtSecretKey []byte) gin.HandlerFunc {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token claims"})
 		c.Abort()
 	}
+}
+
+func ExtractUser(c *gin.Context) *dto.UserDTO {
+	user, ok := c.Get("user")
+	if !ok {
+		return nil
+	}
+	return user.(*dto.UserDTO)
 }
 
 // Checks if provided bearer token is expired or it is not provided.

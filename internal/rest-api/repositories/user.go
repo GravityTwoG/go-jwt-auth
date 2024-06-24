@@ -39,6 +39,23 @@ func (r *userRepository) Create(
 	return nil
 }
 
+func (r *userRepository) GetByID(
+	ctx context.Context,
+	id uint,
+) (*entities.User, domain_errors.ErrDomain) {
+	userModel := models.User{}
+
+	err := r.db.WithContext(ctx).
+		Where(&models.User{ID: id}).
+		First(&userModel).Error
+
+	if err != nil {
+		return nil, database.MapGormErrors(err, "user")
+	}
+
+	return models.UserFromModel(&userModel), nil
+}
+
 func (r *userRepository) GetByEmail(
 	ctx context.Context,
 	email string,

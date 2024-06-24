@@ -29,6 +29,22 @@ func (m *mockedUserRepository) Create(
 	return nil
 }
 
+func (m *mockedUserRepository) GetByID(
+	ctx context.Context,
+	id uint,
+) (*entities.User, domain_errors.ErrDomain) {
+	args := m.Called(ctx, id)
+
+	user := args.Get(0)
+	err := args.Error(1)
+
+	if err != nil {
+		return nil, err.(domain_errors.ErrDomain)
+	}
+
+	return user.(*entities.User), nil
+}
+
 func (m *mockedUserRepository) GetByEmail(
 	ctx context.Context,
 	email string,

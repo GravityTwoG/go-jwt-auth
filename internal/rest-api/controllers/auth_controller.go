@@ -156,9 +156,9 @@ func (ac *AuthController) refreshTokens(c *gin.Context) {
 // @Success	200	{object}	dto.UserDTO
 // @Router		/me [get]
 func (ac *AuthController) me(c *gin.Context) {
-	email, _ := c.Get("email")
+	userDTO := middlewares.ExtractUser(c)
 
-	user, err := ac.authService.GetUser(c, email.(string))
+	user, err := ac.authService.GetUserByID(c, userDTO.ID)
 	if err != nil {
 		writeError(c, err)
 		return
@@ -175,9 +175,9 @@ func (ac *AuthController) me(c *gin.Context) {
 // @Success	200	{array}	string
 // @Router		/active-sessions [get]
 func (ac *AuthController) activeSessions(c *gin.Context) {
-	email, _ := c.Get("email")
+	userDTO := middlewares.ExtractUser(c)
 
-	sessions, err := ac.authService.ActiveSessions(c, email.(string))
+	sessions, err := ac.authService.ActiveSessions(c, userDTO.Email)
 	if err != nil {
 		writeError(c, err)
 		return

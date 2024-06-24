@@ -14,6 +14,11 @@ type UserRepository interface {
 		user *entities.User,
 	) domain_errors.ErrDomain
 
+	GetByID(
+		ctx context.Context,
+		id uint,
+	) (*entities.User, domain_errors.ErrDomain)
+
 	GetByEmail(
 		ctx context.Context,
 		email string,
@@ -29,6 +34,11 @@ type UserService interface {
 	Login(
 		ctx context.Context,
 		dto *dto.LoginDTO,
+	) (*entities.User, domain_errors.ErrDomain)
+
+	GetByID(
+		ctx context.Context,
+		id uint,
 	) (*entities.User, domain_errors.ErrDomain)
 
 	GetByEmail(
@@ -110,6 +120,13 @@ func (s *userService) Login(
 	}
 
 	return user, nil
+}
+
+func (s *userService) GetByID(
+	ctx context.Context,
+	id uint,
+) (*entities.User, domain_errors.ErrDomain) {
+	return s.userRepo.GetByID(ctx, id)
 }
 
 func (s *userService) GetByEmail(

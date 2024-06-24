@@ -57,9 +57,9 @@ type AuthService interface {
 		refreshToken string,
 	) (*Tokens, domain_errors.ErrDomain)
 
-	GetUser(
+	GetUserByID(
 		ctx context.Context,
-		email string,
+		id uint,
 	) (*entities.User, domain_errors.ErrDomain)
 
 	ActiveSessions(
@@ -197,6 +197,7 @@ func (s *authService) newJWT(
 
 	token := jwt.New(jwt.SigningMethodHS256)
 	claims := token.Claims.(jwt.MapClaims)
+	claims["id"] = user.GetId()
 	claims["email"] = user.GetEmail()
 	claims["exp"] = time.Now().Add(time.Duration(s.jwtAccessTTLsec) * time.Second).Unix()
 
@@ -208,12 +209,12 @@ func (s *authService) newJWT(
 	return tokenString, nil
 }
 
-func (s *authService) GetUser(
+func (s *authService) GetUserByID(
 	ctx context.Context,
-	email string,
+	id uint,
 ) (*entities.User, domain_errors.ErrDomain) {
 
-	return s.userService.GetByEmail(ctx, email)
+	return s.userService.GetByID(ctx, id)
 }
 
 func (s *authService) ActiveSessions(
