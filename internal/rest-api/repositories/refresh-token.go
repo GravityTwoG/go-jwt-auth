@@ -3,7 +3,7 @@ package repositories
 import (
 	"context"
 	"go-jwt-auth/internal/rest-api/database"
-	domain_errors "go-jwt-auth/internal/rest-api/domain-errors"
+	domainerrors "go-jwt-auth/internal/rest-api/domain-errors"
 	"go-jwt-auth/internal/rest-api/entities"
 	"go-jwt-auth/internal/rest-api/models"
 	"go-jwt-auth/internal/rest-api/services"
@@ -24,7 +24,7 @@ func NewRefreshTokenRepository(db *gorm.DB) services.RefreshTokenRepository {
 func (r *refreshTokenRepository) Create(
 	ctx context.Context,
 	refreshToken *entities.RefreshToken,
-) domain_errors.ErrDomain {
+) domainerrors.ErrDomain {
 
 	model := models.RefreshTokenFromEntity(refreshToken)
 
@@ -39,7 +39,7 @@ func (r *refreshTokenRepository) Create(
 func (r *refreshTokenRepository) GetByToken(
 	ctx context.Context,
 	token string,
-) (*entities.RefreshToken, domain_errors.ErrDomain) {
+) (*entities.RefreshToken, domainerrors.ErrDomain) {
 
 	refreshToken := &models.RefreshToken{}
 	err := r.db.WithContext(ctx).
@@ -57,7 +57,7 @@ func (r *refreshTokenRepository) GetByToken(
 func (r *refreshTokenRepository) GetByUserEmail(
 	ctx context.Context,
 	email string,
-) ([]*entities.RefreshToken, domain_errors.ErrDomain) {
+) ([]*entities.RefreshToken, domainerrors.ErrDomain) {
 
 	refreshTokens := []*models.RefreshToken{}
 	err := r.db.WithContext(ctx).
@@ -79,7 +79,7 @@ func (r *refreshTokenRepository) GetByUserEmail(
 func (r *refreshTokenRepository) Delete(
 	ctx context.Context,
 	refreshToken *entities.RefreshToken,
-) domain_errors.ErrDomain {
+) domainerrors.ErrDomain {
 
 	model := models.RefreshTokenFromEntity(refreshToken)
 	err := r.db.WithContext(ctx).Delete(model).Error
@@ -91,7 +91,7 @@ func (r *refreshTokenRepository) Delete(
 
 func (r *refreshTokenRepository) DeleteExpired(
 	ctx context.Context,
-) domain_errors.ErrDomain {
+) domainerrors.ErrDomain {
 
 	err := r.db.WithContext(ctx).
 		Where("created_at + interval '1 second' * ttlsec < now()").

@@ -3,7 +3,7 @@ package services
 import (
 	"context"
 	"fmt"
-	domain_errors "go-jwt-auth/internal/rest-api/domain-errors"
+	domainerrors "go-jwt-auth/internal/rest-api/domain-errors"
 	"go-jwt-auth/internal/rest-api/dto"
 	"go-jwt-auth/internal/rest-api/entities"
 )
@@ -12,39 +12,39 @@ type UserRepository interface {
 	Create(
 		ctx context.Context,
 		user *entities.User,
-	) domain_errors.ErrDomain
+	) domainerrors.ErrDomain
 
 	GetByID(
 		ctx context.Context,
 		id uint,
-	) (*entities.User, domain_errors.ErrDomain)
+	) (*entities.User, domainerrors.ErrDomain)
 
 	GetByEmail(
 		ctx context.Context,
 		email string,
-	) (*entities.User, domain_errors.ErrDomain)
+	) (*entities.User, domainerrors.ErrDomain)
 }
 
 type UserService interface {
 	Register(
 		ctx context.Context,
 		dto *dto.RegisterDTO,
-	) (*entities.User, domain_errors.ErrDomain)
+	) (*entities.User, domainerrors.ErrDomain)
 
 	Login(
 		ctx context.Context,
 		dto *dto.LoginDTO,
-	) (*entities.User, domain_errors.ErrDomain)
+	) (*entities.User, domainerrors.ErrDomain)
 
 	GetByID(
 		ctx context.Context,
 		id uint,
-	) (*entities.User, domain_errors.ErrDomain)
+	) (*entities.User, domainerrors.ErrDomain)
 
 	GetByEmail(
 		ctx context.Context,
 		email string,
-	) (*entities.User, domain_errors.ErrDomain)
+	) (*entities.User, domainerrors.ErrDomain)
 }
 
 type userService struct {
@@ -62,10 +62,10 @@ func NewUserService(
 func (s *userService) Register(
 	ctx context.Context,
 	registerDTO *dto.RegisterDTO,
-) (*entities.User, domain_errors.ErrDomain) {
+) (*entities.User, domainerrors.ErrDomain) {
 
 	if registerDTO.Password != registerDTO.Password2 {
-		return nil, domain_errors.NewErrInvalidInput(
+		return nil, domainerrors.NewErrInvalidInput(
 			"PASSWORDS_DONT_MATCH",
 			"passwords don't match",
 		)
@@ -82,8 +82,8 @@ func (s *userService) Register(
 	err = s.userRepo.Create(ctx, user)
 	if err != nil {
 		fmt.Printf("err: %v isNil: %v, isNotNil: %v\n", err, err == nil, err != nil)
-		if err.Kind() == domain_errors.EntityAlreadyExists {
-			return nil, domain_errors.NewErrInvalidInput(
+		if err.Kind() == domainerrors.EntityAlreadyExists {
+			return nil, domainerrors.NewErrInvalidInput(
 				"EMAIL_ALREADY_EXISTS",
 				"email already exists",
 			)
@@ -98,12 +98,12 @@ func (s *userService) Register(
 func (s *userService) Login(
 	ctx context.Context,
 	loginDTO *dto.LoginDTO,
-) (*entities.User, domain_errors.ErrDomain) {
+) (*entities.User, domainerrors.ErrDomain) {
 
 	user, err := s.userRepo.GetByEmail(ctx, loginDTO.Email)
 	if err != nil {
-		if err.Kind() == domain_errors.EntityNotFound {
-			return nil, domain_errors.NewErrInvalidInput(
+		if err.Kind() == domainerrors.EntityNotFound {
+			return nil, domainerrors.NewErrInvalidInput(
 				"INCORRECT_EMAIL_OR_PASSWORD",
 				"incorrect email or password",
 			)
@@ -113,7 +113,7 @@ func (s *userService) Login(
 	}
 
 	if !user.ComparePassword(loginDTO.Password) {
-		return nil, domain_errors.NewErrInvalidInput(
+		return nil, domainerrors.NewErrInvalidInput(
 			"INCORRECT_EMAIL_OR_PASSWORD",
 			"incorrect email or password",
 		)
@@ -125,13 +125,13 @@ func (s *userService) Login(
 func (s *userService) GetByID(
 	ctx context.Context,
 	id uint,
-) (*entities.User, domain_errors.ErrDomain) {
+) (*entities.User, domainerrors.ErrDomain) {
 	return s.userRepo.GetByID(ctx, id)
 }
 
 func (s *userService) GetByEmail(
 	ctx context.Context,
 	email string,
-) (*entities.User, domain_errors.ErrDomain) {
+) (*entities.User, domainerrors.ErrDomain) {
 	return s.userRepo.GetByEmail(ctx, email)
 }

@@ -2,27 +2,27 @@ package database
 
 import (
 	"fmt"
-	domain_errors "go-jwt-auth/internal/rest-api/domain-errors"
+	domainerrors "go-jwt-auth/internal/rest-api/domain-errors"
 
 	"gorm.io/gorm"
 )
 
-func MapGormErrors(err error, entity string) domain_errors.ErrDomain {
+func MapGormErrors(err error, entity string) domainerrors.ErrDomain {
 	switch err {
 	case gorm.ErrRecordNotFound:
-		return domain_errors.NewErrEntityNotFound(entity)
+		return domainerrors.NewErrEntityNotFound(entity)
 
 	case gorm.ErrDuplicatedKey:
-		return domain_errors.NewErrEntityAlreadyExists(entity)
+		return domainerrors.NewErrEntityAlreadyExists(entity)
 
 	case gorm.ErrInvalidValue:
-		return domain_errors.NewErrInvalidInput(
-			domain_errors.InvalidInput,
+		return domainerrors.NewErrInvalidInput(
+			domainerrors.InvalidInput,
 			err.Error(),
 		)
 
 	default:
 		fmt.Print(err)
-		return domain_errors.NewErrUnknown(err)
+		return domainerrors.NewErrUnknown(err)
 	}
 }

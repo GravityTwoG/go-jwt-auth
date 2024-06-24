@@ -3,19 +3,19 @@ package controllers
 import (
 	"net/http"
 
-	domain_errors "go-jwt-auth/internal/rest-api/domain-errors"
+	domainerrors "go-jwt-auth/internal/rest-api/domain-errors"
 	"go-jwt-auth/internal/rest-api/dto"
 	"go-jwt-auth/internal/rest-api/entities"
 	"go-jwt-auth/internal/rest-api/middlewares"
 	"go-jwt-auth/internal/rest-api/services"
-	gin_utils "go-jwt-auth/pkg/gin-utils"
+	ginutils "go-jwt-auth/pkg/gin-utils"
 
 	"github.com/gin-gonic/gin"
 )
 
 const cookieName = "refreshToken"
 
-var ErrRefreshTokenNotFound = domain_errors.NewErrEntityNotFound(
+var ErrRefreshTokenNotFound = domainerrors.NewErrEntityNotFound(
 	"refresh token not found in cookie",
 )
 
@@ -59,9 +59,9 @@ func (ac *AuthController) RegisterRoutes(r *gin.Engine) {
 // @Router		/register [post]
 func (ac *AuthController) register(c *gin.Context) {
 
-	registerDTO, err := gin_utils.DecodeJSON[*dto.RegisterDTO](c)
+	registerDTO, err := ginutils.DecodeJSON[*dto.RegisterDTO](c)
 	if err != nil {
-		writeError(c, domain_errors.NewErrInvalidInput(
+		writeError(c, domainerrors.NewErrInvalidInput(
 			"INVALID_BODY",
 			err.Error(),
 		))
@@ -92,9 +92,9 @@ type LoginResponeDTO struct {
 // @Router		/login [post]
 func (ac *AuthController) login(c *gin.Context) {
 
-	loginDTO, err := gin_utils.DecodeJSON[*dto.LoginDTO](c)
+	loginDTO, err := ginutils.DecodeJSON[*dto.LoginDTO](c)
 	if err != nil {
-		writeError(c, domain_errors.NewErrInvalidInput(
+		writeError(c, domainerrors.NewErrInvalidInput(
 			"INVALID_BODY",
 			err.Error(),
 		))
@@ -236,16 +236,16 @@ func resetCookie(c *gin.Context, name string) {
 
 func writeError(
 	c *gin.Context,
-	err domain_errors.ErrDomain,
+	err domainerrors.ErrDomain,
 ) {
 	status := http.StatusInternalServerError
 
 	switch {
-	case err.Kind() == domain_errors.EntityNotFound:
+	case err.Kind() == domainerrors.EntityNotFound:
 		status = http.StatusNotFound
-	case err.Kind() == domain_errors.InvalidInput:
+	case err.Kind() == domainerrors.InvalidInput:
 		status = http.StatusConflict
-	case err.Kind() == domain_errors.InvalidInput:
+	case err.Kind() == domainerrors.InvalidInput:
 		status = http.StatusBadRequest
 	}
 
@@ -255,7 +255,7 @@ func writeError(
 func writeErrorWithStatus(
 	c *gin.Context,
 	status int,
-	err domain_errors.ErrDomain,
+	err domainerrors.ErrDomain,
 ) {
 	c.JSON(status, gin.H{
 		"kind":  err.Kind(),

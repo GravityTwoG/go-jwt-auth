@@ -1,7 +1,7 @@
 package entities
 
 import (
-	domain_errors "go-jwt-auth/internal/rest-api/domain-errors"
+	domainerrors "go-jwt-auth/internal/rest-api/domain-errors"
 	"time"
 
 	"golang.org/x/crypto/bcrypt"
@@ -20,11 +20,11 @@ type User struct {
 func NewUser(
 	email string,
 	password string,
-) (*User, domain_errors.ErrDomain) {
+) (*User, domainerrors.ErrDomain) {
 	user := User{}
 
 	if len(email) < 3 || len(email) > 256 {
-		return nil, domain_errors.NewErrInvalidInput(
+		return nil, domainerrors.NewErrInvalidInput(
 			"EMAIL_INVALID_LENGTH",
 			"email must be between 3 and 256 characters",
 		)
@@ -63,9 +63,9 @@ func (u *User) GetPassword() string {
 	return u.password
 }
 
-func (u *User) ChangePassword(rawPassword string) domain_errors.ErrDomain {
+func (u *User) ChangePassword(rawPassword string) domainerrors.ErrDomain {
 	if len(rawPassword) < 8 || len(rawPassword) > 64 {
-		return domain_errors.NewErrInvalidInput(
+		return domainerrors.NewErrInvalidInput(
 			"PASSWORD_LENGTH_INVALID",
 			"password must be between 8 and 64 characters",
 		)
@@ -83,14 +83,14 @@ func (u *User) ComparePassword(rawPassword string) bool {
 	return comparePasswords(u.password, rawPassword)
 }
 
-func hashPassword(password string) (string, domain_errors.ErrDomain) {
+func hashPassword(password string) (string, domainerrors.ErrDomain) {
 	hashedPassword, err := bcrypt.GenerateFromPassword(
 		[]byte(password),
 		bcrypt.DefaultCost,
 	)
 
 	if err != nil {
-		return "", domain_errors.NewErrUnknown(
+		return "", domainerrors.NewErrUnknown(
 			err,
 		)
 	}

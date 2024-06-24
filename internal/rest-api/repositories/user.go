@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"go-jwt-auth/internal/rest-api/database"
-	domain_errors "go-jwt-auth/internal/rest-api/domain-errors"
+	domainerrors "go-jwt-auth/internal/rest-api/domain-errors"
 	"go-jwt-auth/internal/rest-api/entities"
 	"go-jwt-auth/internal/rest-api/models"
 	"go-jwt-auth/internal/rest-api/services"
@@ -25,7 +25,7 @@ func NewUserRepository(db *gorm.DB) services.UserRepository {
 func (r *userRepository) Create(
 	ctx context.Context,
 	user *entities.User,
-) domain_errors.ErrDomain {
+) domainerrors.ErrDomain {
 
 	userModel := models.UserFromEntity(user)
 
@@ -42,7 +42,7 @@ func (r *userRepository) Create(
 func (r *userRepository) GetByID(
 	ctx context.Context,
 	id uint,
-) (*entities.User, domain_errors.ErrDomain) {
+) (*entities.User, domainerrors.ErrDomain) {
 	userModel := models.User{}
 
 	err := r.db.WithContext(ctx).
@@ -59,7 +59,7 @@ func (r *userRepository) GetByID(
 func (r *userRepository) GetByEmail(
 	ctx context.Context,
 	email string,
-) (*entities.User, domain_errors.ErrDomain) {
+) (*entities.User, domainerrors.ErrDomain) {
 
 	userModel := models.User{}
 

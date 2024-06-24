@@ -2,7 +2,7 @@ package services
 
 import (
 	"context"
-	domain_errors "go-jwt-auth/internal/rest-api/domain-errors"
+	domainerrors "go-jwt-auth/internal/rest-api/domain-errors"
 	"go-jwt-auth/internal/rest-api/dto"
 	"go-jwt-auth/internal/rest-api/entities"
 	"log"
@@ -20,57 +20,57 @@ type RefreshTokenRepository interface {
 	Create(
 		ctx context.Context,
 		refreshToken *entities.RefreshToken,
-	) domain_errors.ErrDomain
+	) domainerrors.ErrDomain
 
 	GetByToken(
 		ctx context.Context,
 		token string,
-	) (*entities.RefreshToken, domain_errors.ErrDomain)
+	) (*entities.RefreshToken, domainerrors.ErrDomain)
 
 	GetByUserEmail(
 		ctx context.Context,
 		email string,
-	) ([]*entities.RefreshToken, domain_errors.ErrDomain)
+	) ([]*entities.RefreshToken, domainerrors.ErrDomain)
 
 	Delete(
 		ctx context.Context,
 		refreshToken *entities.RefreshToken,
-	) domain_errors.ErrDomain
+	) domainerrors.ErrDomain
 
 	DeleteExpired(
-		ctx context.Context) domain_errors.ErrDomain
+		ctx context.Context) domainerrors.ErrDomain
 }
 
 type AuthService interface {
 	Register(
 		ctx context.Context,
 		dto *dto.RegisterDTO,
-	) (*entities.User, domain_errors.ErrDomain)
+	) (*entities.User, domainerrors.ErrDomain)
 
 	Login(
 		ctx context.Context,
 		dto *dto.LoginDTO,
-	) (*entities.User, *Tokens, domain_errors.ErrDomain)
+	) (*entities.User, *Tokens, domainerrors.ErrDomain)
 
 	RefreshTokens(
 		ctx context.Context,
 		refreshToken string,
-	) (*Tokens, domain_errors.ErrDomain)
+	) (*Tokens, domainerrors.ErrDomain)
 
 	GetUserByID(
 		ctx context.Context,
 		id uint,
-	) (*entities.User, domain_errors.ErrDomain)
+	) (*entities.User, domainerrors.ErrDomain)
 
 	ActiveSessions(
 		ctx context.Context,
 		email string,
-	) ([]*entities.RefreshToken, domain_errors.ErrDomain)
+	) ([]*entities.RefreshToken, domainerrors.ErrDomain)
 
 	Logout(
 		ctx context.Context,
 		refreshToken string,
-	) domain_errors.ErrDomain
+	) domainerrors.ErrDomain
 
 	RunScheduledTasks(ctx context.Context)
 }
@@ -107,7 +107,7 @@ func NewAuthService(
 func (s *authService) Register(
 	ctx context.Context,
 	registerDTO *dto.RegisterDTO,
-) (*entities.User, domain_errors.ErrDomain) {
+) (*entities.User, domainerrors.ErrDomain) {
 
 	return s.userService.Register(ctx, registerDTO)
 }
@@ -115,7 +115,7 @@ func (s *authService) Register(
 func (s *authService) Login(
 	ctx context.Context,
 	loginDTO *dto.LoginDTO,
-) (*entities.User, *Tokens, domain_errors.ErrDomain) {
+) (*entities.User, *Tokens, domainerrors.ErrDomain) {
 
 	user, err := s.userService.Login(ctx, loginDTO)
 	if err != nil {
@@ -148,7 +148,7 @@ func (s *authService) Login(
 func (s *authService) RefreshTokens(
 	ctx context.Context,
 	refreshToken string,
-) (*Tokens, domain_errors.ErrDomain) {
+) (*Tokens, domainerrors.ErrDomain) {
 	existingRefreshToken, err := s.refreshTokenRepository.
 		GetByToken(ctx, refreshToken)
 	if err != nil {
@@ -156,7 +156,7 @@ func (s *authService) RefreshTokens(
 	}
 
 	if existingRefreshToken.Expired() {
-		return nil, domain_errors.NewErrInvalidInput(
+		return nil, domainerrors.NewErrInvalidInput(
 			"REFRESH_TOKEN_EXPIRED",
 			"refresh token expired",
 		)
@@ -193,7 +193,7 @@ func (s *authService) RefreshTokens(
 
 func (s *authService) newJWT(
 	user *entities.User,
-) (string, domain_errors.ErrDomain) {
+) (string, domainerrors.ErrDomain) {
 
 	token := jwt.New(jwt.SigningMethodHS256)
 	claims := token.Claims.(jwt.MapClaims)
@@ -203,7 +203,7 @@ func (s *authService) newJWT(
 
 	tokenString, err := token.SignedString(s.jwtSecretKey)
 	if err != nil {
-		return "", domain_errors.NewErrUnknown(err)
+		return "", domainerrors.NewErrUnknown(err)
 	}
 
 	return tokenString, nil
@@ -212,7 +212,7 @@ func (s *authService) newJWT(
 func (s *authService) GetUserByID(
 	ctx context.Context,
 	id uint,
-) (*entities.User, domain_errors.ErrDomain) {
+) (*entities.User, domainerrors.ErrDomain) {
 
 	return s.userService.GetByID(ctx, id)
 }
@@ -220,7 +220,7 @@ func (s *authService) GetUserByID(
 func (s *authService) ActiveSessions(
 	ctx context.Context,
 	email string,
-) ([]*entities.RefreshToken, domain_errors.ErrDomain) {
+) ([]*entities.RefreshToken, domainerrors.ErrDomain) {
 
 	return s.refreshTokenRepository.GetByUserEmail(ctx, email)
 }
@@ -228,7 +228,7 @@ func (s *authService) ActiveSessions(
 func (s *authService) Logout(
 	ctx context.Context,
 	refreshToken string,
-) domain_errors.ErrDomain {
+) domainerrors.ErrDomain {
 	model, err := s.refreshTokenRepository.GetByToken(ctx, refreshToken)
 	if err != nil {
 		return err

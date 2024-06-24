@@ -7,7 +7,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 
-	domain_errors "go-jwt-auth/internal/rest-api/domain-errors"
+	domainerrors "go-jwt-auth/internal/rest-api/domain-errors"
 	"go-jwt-auth/internal/rest-api/dto"
 	"go-jwt-auth/internal/rest-api/entities"
 	"go-jwt-auth/internal/rest-api/services"
@@ -20,11 +20,11 @@ type mockedUserRepository struct {
 func (m *mockedUserRepository) Create(
 	ctx context.Context,
 	user *entities.User,
-) domain_errors.ErrDomain {
+) domainerrors.ErrDomain {
 	args := m.Called(ctx, user)
 	err := args.Error(0)
 	if err != nil {
-		return err.(domain_errors.ErrDomain)
+		return err.(domainerrors.ErrDomain)
 	}
 	return nil
 }
@@ -32,14 +32,14 @@ func (m *mockedUserRepository) Create(
 func (m *mockedUserRepository) GetByID(
 	ctx context.Context,
 	id uint,
-) (*entities.User, domain_errors.ErrDomain) {
+) (*entities.User, domainerrors.ErrDomain) {
 	args := m.Called(ctx, id)
 
 	user := args.Get(0)
 	err := args.Error(1)
 
 	if err != nil {
-		return nil, err.(domain_errors.ErrDomain)
+		return nil, err.(domainerrors.ErrDomain)
 	}
 
 	return user.(*entities.User), nil
@@ -48,7 +48,7 @@ func (m *mockedUserRepository) GetByID(
 func (m *mockedUserRepository) GetByEmail(
 	ctx context.Context,
 	email string,
-) (*entities.User, domain_errors.ErrDomain) {
+) (*entities.User, domainerrors.ErrDomain) {
 
 	args := m.Called(ctx, email)
 
@@ -56,7 +56,7 @@ func (m *mockedUserRepository) GetByEmail(
 	err := args.Error(1)
 
 	if err != nil {
-		return nil, err.(domain_errors.ErrDomain)
+		return nil, err.(domainerrors.ErrDomain)
 	}
 
 	return user.(*entities.User), nil
@@ -103,7 +103,7 @@ func TestUserService_Register(t *testing.T) {
 				Password2: "password",
 			},
 			mockSetup: func(m *mockedUserRepository) {
-				m.On("Create", mock.Anything, mock.Anything).Return(domain_errors.NewErrEntityAlreadyExists("user"))
+				m.On("Create", mock.Anything, mock.Anything).Return(domainerrors.NewErrEntityAlreadyExists("user"))
 			},
 			expectedErr:     true,
 			expectedErrCode: "EMAIL_ALREADY_EXISTS",
@@ -151,7 +151,7 @@ func TestUserService_Login(t *testing.T) {
 				Password: "password",
 			},
 			mockSetup: func(m *mockedUserRepository) {
-				m.On("GetByEmail", mock.Anything, mock.Anything).Return(nil, domain_errors.NewErrEntityNotFound("user"))
+				m.On("GetByEmail", mock.Anything, mock.Anything).Return(nil, domainerrors.NewErrEntityNotFound("user"))
 			},
 			expectedErr:     true,
 			expectedErrCode: "INCORRECT_EMAIL_OR_PASSWORD",
