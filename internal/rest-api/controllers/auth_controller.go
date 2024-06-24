@@ -16,6 +16,7 @@ import (
 const cookieName = "refreshToken"
 
 var ErrRefreshTokenNotFound = domainerrors.NewErrEntityNotFound(
+	"REFRESH_TOKEN_NOT_FOUND",
 	"refresh token not found in cookie",
 )
 
@@ -153,6 +154,12 @@ func (ac *AuthController) refreshTokens(c *gin.Context) {
 	}
 	tokens, derr := ac.authService.RefreshTokens(c, dto)
 	if derr != nil {
+		isExpired := derr.Code() == services.RefreshTokenExpired
+		notFound := derr.Code() == domainerrors.EntityNotFound
+		if isExpired || notFound {
+			resetCookie(c, cookieName)
+		}
+
 		writeError(c, derr)
 		return
 	}

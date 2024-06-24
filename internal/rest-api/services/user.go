@@ -83,7 +83,7 @@ func (s *userService) Register(
 	if err != nil {
 		fmt.Printf("err: %v isNil: %v, isNotNil: %v\n", err, err == nil, err != nil)
 		if err.Kind() == domainerrors.EntityAlreadyExists {
-			return nil, domainerrors.NewErrInvalidInput(
+			return nil, domainerrors.NewErrEntityAlreadyExists(
 				"EMAIL_ALREADY_EXISTS",
 				"email already exists",
 			)

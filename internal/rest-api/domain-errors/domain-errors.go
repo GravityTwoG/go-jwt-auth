@@ -49,18 +49,18 @@ func (e *errDomain) Unwrap() error {
 	return e.err
 }
 
-func NewErrEntityNotFound(entity string) ErrDomain {
+func NewErrEntityNotFound(code string, entity string) ErrDomain {
 	return newErr(
 		EntityNotFound,
-		EntityNotFound,
+		code,
 		fmt.Errorf("entity %s not found", entity),
 	)
 }
 
-func NewErrEntityAlreadyExists(entity string) ErrDomain {
+func NewErrEntityAlreadyExists(code string, entity string) ErrDomain {
 	return newErr(
 		EntityAlreadyExists,
-		EntityAlreadyExists,
+		code,
 		fmt.Errorf("entity %s already exists", entity),
 	)
 }
@@ -74,5 +74,5 @@ func NewErrInvalidInput(code string, err string) ErrDomain {
 }
 
 func NewErrUnknown(err error) ErrDomain {
-	return newErr(Unknown, err.Error(), err)
+	return newErr(Unknown, Unknown, err)
 }

@@ -11,6 +11,8 @@ import (
 	"github.com/golang-jwt/jwt/v4"
 )
 
+const RefreshTokenExpired = "REFRESH_TOKEN_EXPIRED"
+
 type Tokens struct {
 	AccessToken  string
 	RefreshToken entities.RefreshToken
@@ -169,7 +171,7 @@ func (s *authService) RefreshTokens(
 
 	if existingRefreshToken.Expired() {
 		return nil, domainerrors.NewErrInvalidInput(
-			"REFRESH_TOKEN_EXPIRED",
+			RefreshTokenExpired,
 			"refresh token expired",
 		)
 	}

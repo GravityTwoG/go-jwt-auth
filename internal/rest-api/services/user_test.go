@@ -103,7 +103,7 @@ func TestUserService_Register(t *testing.T) {
 				Password2: "password",
 			},
 			mockSetup: func(m *mockedUserRepository) {
-				m.On("Create", mock.Anything, mock.Anything).Return(domainerrors.NewErrEntityAlreadyExists("user"))
+				m.On("Create", mock.Anything, mock.Anything).Return(domainerrors.NewErrEntityAlreadyExists("EMAIL_ALREADY_EXISTS", "email"))
 			},
 			expectedErr:     true,
 			expectedErrCode: "EMAIL_ALREADY_EXISTS",
@@ -151,7 +151,7 @@ func TestUserService_Login(t *testing.T) {
 				Password: "password",
 			},
 			mockSetup: func(m *mockedUserRepository) {
-				m.On("GetByEmail", mock.Anything, mock.Anything).Return(nil, domainerrors.NewErrEntityNotFound("user"))
+				m.On("GetByEmail", mock.Anything, mock.Anything).Return(nil, domainerrors.NewErrEntityNotFound("USER_NOT_FOUND", "user"))
 			},
 			expectedErr:     true,
 			expectedErrCode: "INCORRECT_EMAIL_OR_PASSWORD",
