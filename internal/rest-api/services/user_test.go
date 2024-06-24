@@ -204,6 +204,8 @@ func TestUserService_Login(t *testing.T) {
 				assert.Nil(t, err)
 				assert.NotNil(t, user)
 			}
+
+			userRepoMock.AssertExpectations(t)
 		})
 	}
 }
