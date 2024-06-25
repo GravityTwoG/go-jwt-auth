@@ -34,11 +34,11 @@ import (
 // @in							header
 // @name						Authorization
 func main() {
+	cfg := config.MustLoadConfig()
+
 	r := gin.Default()
 
-	r.Use(corsMiddleware([]string{"http://localhost:5173"}))
-
-	cfg := config.MustLoadConfig()
+	r.Use(corsMiddleware(cfg.AllowedOrigins))
 
 	db, err := database.ConnectToDB(cfg.DSN)
 	if err != nil {

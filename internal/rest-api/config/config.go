@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"strconv"
+	"strings"
 
 	"github.com/joho/godotenv"
 )
@@ -14,14 +15,18 @@ type Config struct {
 	JWTSecretKey       string
 	JWTAccessTTLsec    int
 	RefreshTokenTTLsec int
-	Port               string
-	DSN                string
+
+	Port string
+
+	AllowedOrigins []string
+
+	DSN string
 }
 
 func MustLoadConfig() *Config {
 	err := godotenv.Load()
 	if err != nil {
-		log.Fatal("Error loading .env file")
+		log.Fatal("Error loading .env file:", err)
 	}
 
 	config := &Config{}
@@ -41,15 +46,28 @@ func MustLoadConfig() *Config {
 		log.Fatal("Invalid REFRESH_TOKEN_TTL_SEC value in .env file")
 	}
 
-	config.Port = os.Getenv("PORT")
-	if config.Port == "" {
-		config.Port = "8080" // Default port if not specified
+	config.AllowedOrigins = []string{}
+	origins := os.Getenv("ALLOWED_ORIGINS")
+	if origins != "" {
+		for _, host := range strings.Split(origins, ",") {
+			config.AllowedOrigins = append(
+				config.AllowedOrigins,
+				strings.TrimSpace(host),
+			)
+		}
 	}
 
 	config.DSN = os.Getenv("DSN")
 	if config.DSN == "" {
 		log.Fatal("Invalid DSN value in .env file")
 	}
+
+	config.Port = os.Getenv("PORT")
+	if config.Port == "" {
+		config.Port = "8080" // Default port if not specified
+	}
+
+	log.Println("Config loaded")
 
 	return config
 }
