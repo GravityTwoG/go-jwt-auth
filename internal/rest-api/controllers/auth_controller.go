@@ -20,7 +20,17 @@ var ErrRefreshTokenNotFound = domainerrors.NewErrEntityNotFound(
 	"refresh token not found in cookie",
 )
 
-type AuthController struct {
+type CommonResponseDTO struct {
+	Message string `json:"message"`
+}
+
+type ErrorResponseDTO struct {
+	Kind  string `json:"kind"`
+	Code  string `json:"code"`
+	Error string `json:"error"`
+}
+
+type authController struct {
 	authService services.AuthService
 
 	jwtSecretKey []byte
@@ -29,21 +39,22 @@ type AuthController struct {
 func NewAuthController(
 	authService services.AuthService,
 	jwtSecretKey string,
-) *AuthController {
-	return &AuthController{
+) *authController {
+	return &authController{
 		authService: authService,
 
 		jwtSecretKey: []byte(jwtSecretKey),
 	}
 }
 
-func (ac *AuthController) RegisterRoutes(r *gin.Engine) {
+func (ac *authController) RegisterRoutes(r *gin.Engine) {
 	anonMiddleware := middlewares.AnonymousMiddleware(ac.jwtSecretKey)
 	authMiddleware := middlewares.AuthMiddleware(ac.jwtSecretKey)
 
 	r.POST("/register", anonMiddleware, ac.register)
 	r.POST("/login", anonMiddleware, ac.login)
-	r.POST("/logout", ac.logout)
+	r.POST("/logout", authMiddleware, ac.logout)
+	r.POST("/logout-all", authMiddleware, ac.logoutAll)
 
 	r.POST("/refresh-tokens", ac.refreshTokens)
 
@@ -57,8 +68,9 @@ func (ac *AuthController) RegisterRoutes(r *gin.Engine) {
 // @Produce	json
 // @Param		body	body		dto.RegisterDTO	true	"RegisterDTO"
 // @Success	201		{object}	dto.UserDTO
+// @Failure	400		{object}	ErrorResponseDTO
 // @Router		/register [post]
-func (ac *AuthController) register(c *gin.Context) {
+func (ac *authController) register(c *gin.Context) {
 
 	registerDTO, err := ginutils.DecodeJSON[*dto.RegisterDTO](c)
 	if err != nil {
@@ -90,8 +102,10 @@ type LoginResponeDTO struct {
 // @Produce	json
 // @Param		body	body		dto.LoginDTO	true	"LoginDTO"
 // @Success	200		{object}	LoginResponeDTO
+// @Failure	400		{object}	ErrorResponseDTO
+// @Failure	401		{object}	ErrorResponseDTO
 // @Router		/login [post]
-func (ac *AuthController) login(c *gin.Context) {
+func (ac *authController) login(c *gin.Context) {
 
 	loginDTO, err := ginutils.DecodeJSON[*dto.LoginDTO](c)
 	if err != nil {
@@ -134,8 +148,9 @@ type RefreshTokensResponeDTO struct {
 // @Security	ApiKeyAuth
 // @Produce	json
 // @Success	200	{object}	RefreshTokensResponeDTO
+// @Failure	401	{object}	ErrorResponseDTO
 // @Router		/refresh-tokens [post]
-func (ac *AuthController) refreshTokens(c *gin.Context) {
+func (ac *authController) refreshTokens(c *gin.Context) {
 
 	refreshToken, err := c.Cookie(cookieName)
 	if err != nil {
@@ -175,7 +190,7 @@ func (ac *AuthController) refreshTokens(c *gin.Context) {
 // @Produce	json
 // @Success	200	{object}	dto.UserDTO
 // @Router		/me [get]
-func (ac *AuthController) me(c *gin.Context) {
+func (ac *authController) me(c *gin.Context) {
 	userDTO := middlewares.ExtractUser(c)
 
 	user, err := ac.authService.GetUserByID(c, userDTO.ID)
@@ -194,7 +209,7 @@ func (ac *AuthController) me(c *gin.Context) {
 // @Produce	json
 // @Success	200	{object}	dto.SessionsDTO
 // @Router		/active-sessions [get]
-func (ac *AuthController) activeSessions(c *gin.Context) {
+func (ac *authController) activeSessions(c *gin.Context) {
 	userDTO := middlewares.ExtractUser(c)
 
 	sessions, err := ac.authService.ActiveSessions(c, userDTO.Email)
@@ -208,17 +223,13 @@ func (ac *AuthController) activeSessions(c *gin.Context) {
 	c.JSON(http.StatusOK, sessionsDTO)
 }
 
-type LogoutResponeDTO struct {
-	Message string `json:"message"`
-}
-
 // @Tags		Auth
 // @Summary	Logout user
 // @Security	ApiKeyAuth
 // @Produce	json
-// @Success	200	{object}	LogoutResponeDTO
+// @Success	200	{object}	CommonResponseDTO
 // @Router		/logout [post]
-func (ac *AuthController) logout(c *gin.Context) {
+func (ac *authController) logout(c *gin.Context) {
 	refreshToken, err := c.Cookie(cookieName)
 	if err != nil {
 		// Should logout in any case
@@ -235,6 +246,29 @@ func (ac *AuthController) logout(c *gin.Context) {
 
 		c.JSON(http.StatusOK, gin.H{"message": "Logged out"})
 	}
+}
+
+// @Tags		Auth
+// @Summary	Logout all sessions
+// @Security	ApiKeyAuth
+// @Produce	json
+// @Success	200	{object}	CommonResponseDTO
+// @Router		/logout-all [post]
+func (ac *authController) logoutAll(c *gin.Context) {
+	userDTO := middlewares.ExtractUser(c)
+	err := ac.authService.LogoutAll(c, userDTO.ID)
+	if err != nil {
+		c.JSON(
+			http.StatusInternalServerError,
+			gin.H{"message": "Internal server error"},
+		)
+		return
+	}
+
+	// Delete refresh token from cookie
+	resetCookie(c, cookieName)
+
+	c.JSON(http.StatusOK, gin.H{"message": "Logged out"})
 }
 
 func setRefreshTokenCookie(

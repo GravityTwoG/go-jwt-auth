@@ -1,16 +1,25 @@
 basePath: /
 definitions:
+  controllers.CommonResponseDTO:
+    properties:
+      message:
+        type: string
+    type: object
+  controllers.ErrorResponseDTO:
+    properties:
+      code:
+        type: string
+      error:
+        type: string
+      kind:
+        type: string
+    type: object
   controllers.LoginResponeDTO:
     properties:
       accessToken:
         type: string
       user:
         $ref: '#/definitions/dto.UserDTO'
-    type: object
-  controllers.LogoutResponeDTO:
-    properties:
-      message:
-        type: string
     type: object
   controllers.RefreshTokensResponeDTO:
     properties:
@@ -42,7 +51,7 @@ definitions:
     type: object
   dto.SessionDTO:
     properties:
-      created_at:
+      createdAt:
         type: string
       ip:
         type: string
@@ -107,6 +116,14 @@ paths:
           description: OK
           schema:
             $ref: '#/definitions/controllers.LoginResponeDTO'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/controllers.ErrorResponseDTO'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/controllers.ErrorResponseDTO'
       summary: Login user
       tags:
       - Auth
@@ -118,10 +135,24 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/controllers.LogoutResponeDTO'
+            $ref: '#/definitions/controllers.CommonResponseDTO'
       security:
       - ApiKeyAuth: []
       summary: Logout user
+      tags:
+      - Auth
+  /logout-all:
+    post:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/controllers.CommonResponseDTO'
+      security:
+      - ApiKeyAuth: []
+      summary: Logout all sessions
       tags:
       - Auth
   /me:
@@ -148,6 +179,10 @@ paths:
           description: OK
           schema:
             $ref: '#/definitions/controllers.RefreshTokensResponeDTO'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/controllers.ErrorResponseDTO'
       security:
       - ApiKeyAuth: []
       summary: Refresh tokens
@@ -171,6 +206,10 @@ paths:
           description: Created
           schema:
             $ref: '#/definitions/dto.UserDTO'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/controllers.ErrorResponseDTO'
       summary: Register new user
       tags:
       - Auth

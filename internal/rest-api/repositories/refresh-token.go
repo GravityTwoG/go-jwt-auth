@@ -89,6 +89,23 @@ func (r *refreshTokenRepository) Delete(
 	return nil
 }
 
+func (r *refreshTokenRepository) DeleteByUserID(
+	ctx context.Context,
+	userID uint,
+) domainerrors.ErrDomain {
+
+	err := r.db.WithContext(ctx).
+		Where(&models.RefreshToken{UserID: userID}).
+		Delete(&models.RefreshToken{}).
+		Error
+
+	if err != nil {
+		return database.MapGormErrors(err, "refresh-token")
+	}
+
+	return nil
+}
+
 func (r *refreshTokenRepository) DeleteExpired(
 	ctx context.Context,
 ) domainerrors.ErrDomain {

@@ -115,6 +115,20 @@ func (m *mockRefreshTokenRepository) Delete(ctx context.Context, refreshToken *e
 	return nil
 }
 
+func (m *mockRefreshTokenRepository) DeleteByUserID(
+	ctx context.Context,
+	userID uint,
+) domainerrors.ErrDomain {
+	args := m.Called(ctx, userID)
+
+	err := args.Error(0)
+	if err != nil {
+		return err.(domainerrors.ErrDomain)
+	}
+
+	return nil
+}
+
 func (m *mockRefreshTokenRepository) DeleteExpired(ctx context.Context) domainerrors.ErrDomain {
 	args := m.Called(ctx)
 

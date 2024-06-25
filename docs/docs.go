@@ -74,6 +74,18 @@ const docTemplate = `{
                         "schema": {
                             "$ref": "#/definitions/controllers.LoginResponeDTO"
                         }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/controllers.ErrorResponseDTO"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/controllers.ErrorResponseDTO"
+                        }
                     }
                 }
             }
@@ -96,7 +108,31 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/controllers.LogoutResponeDTO"
+                            "$ref": "#/definitions/controllers.CommonResponseDTO"
+                        }
+                    }
+                }
+            }
+        },
+        "/logout-all": {
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "Logout all sessions",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/controllers.CommonResponseDTO"
                         }
                     }
                 }
@@ -147,6 +183,12 @@ const docTemplate = `{
                         "schema": {
                             "$ref": "#/definitions/controllers.RefreshTokensResponeDTO"
                         }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/controllers.ErrorResponseDTO"
+                        }
                     }
                 }
             }
@@ -180,12 +222,40 @@ const docTemplate = `{
                         "schema": {
                             "$ref": "#/definitions/dto.UserDTO"
                         }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/controllers.ErrorResponseDTO"
+                        }
                     }
                 }
             }
         }
     },
     "definitions": {
+        "controllers.CommonResponseDTO": {
+            "type": "object",
+            "properties": {
+                "message": {
+                    "type": "string"
+                }
+            }
+        },
+        "controllers.ErrorResponseDTO": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "string"
+                },
+                "error": {
+                    "type": "string"
+                },
+                "kind": {
+                    "type": "string"
+                }
+            }
+        },
         "controllers.LoginResponeDTO": {
             "type": "object",
             "properties": {
@@ -194,14 +264,6 @@ const docTemplate = `{
                 },
                 "user": {
                     "$ref": "#/definitions/dto.UserDTO"
-                }
-            }
-        },
-        "controllers.LogoutResponeDTO": {
-            "type": "object",
-            "properties": {
-                "message": {
-                    "type": "string"
                 }
             }
         },
@@ -250,7 +312,7 @@ const docTemplate = `{
         "dto.SessionDTO": {
             "type": "object",
             "properties": {
-                "created_at": {
+                "createdAt": {
                     "type": "string"
                 },
                 "ip": {

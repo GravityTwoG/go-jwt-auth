@@ -45,6 +45,11 @@ type RefreshTokenRepository interface {
 		refreshToken *entities.RefreshToken,
 	) domainerrors.ErrDomain
 
+	DeleteByUserID(
+		ctx context.Context,
+		userID uint,
+	) domainerrors.ErrDomain
+
 	DeleteExpired(
 		ctx context.Context) domainerrors.ErrDomain
 }
@@ -80,6 +85,11 @@ type AuthService interface {
 	Logout(
 		ctx context.Context,
 		refreshToken string,
+	) domainerrors.ErrDomain
+
+	LogoutAll(
+		ctx context.Context,
+		userID uint,
 	) domainerrors.ErrDomain
 
 	RunScheduledTasks(ctx context.Context)
@@ -251,6 +261,13 @@ func (s *authService) Logout(
 	}
 
 	return s.refreshTokenRepository.Delete(ctx, model)
+}
+
+func (s *authService) LogoutAll(
+	ctx context.Context,
+	userID uint,
+) domainerrors.ErrDomain {
+	return s.refreshTokenRepository.DeleteByUserID(ctx, userID)
 }
 
 func (s *authService) RunScheduledTasks(ctx context.Context) {
