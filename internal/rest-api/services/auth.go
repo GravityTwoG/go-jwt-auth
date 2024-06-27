@@ -209,6 +209,7 @@ func (s *authService) RefreshTokens(
 	var domainError domainerrors.ErrDomain = nil
 
 	s.trManager.Do(ctx, func(ctx context.Context) error {
+		// TODO: need exclusive lock here or another isolation level
 		oldRefreshToken, err := s.refreshTokenRepository.
 			GetByToken(ctx, dto.OldToken)
 
@@ -253,6 +254,13 @@ func (s *authService) RefreshTokens(
 			return domainError
 		}
 
+		// delete old refresh token
+		err = s.refreshTokenRepository.Delete(ctx, oldRefreshToken)
+		if err != nil {
+			domainError = err
+			return domainError
+		}
+
 		// create new access token
 		accessToken, err := newJWT(
 			oldRefreshToken.GetUser(),
@@ -283,13 +291,6 @@ func (s *authService) RefreshTokens(
 			dto.UserAgent,
 		)
 		err = s.refreshTokenRepository.Create(ctx, newRefreshTokenEntity)
-		if err != nil {
-			domainError = err
-			return domainError
-		}
-
-		// delete old token
-		err = s.refreshTokenRepository.Delete(ctx, oldRefreshToken)
 		if err != nil {
 			domainError = err
 			return domainError
