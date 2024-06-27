@@ -11,10 +11,10 @@ RUN go mod download
 # Copy the rest of the application code
 COPY . .
 
-RUN env GOOS=linux GOARCH=amd64 go build -o migrate ./cmd/migrate/main.go
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o migrate ./cmd/migrate/main.go
 
 # Build the Go application
-RUN env GOOS=linux GOARCH=amd64 go build -o go-jwt-auth ./cmd/rest-api/main.go
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o go-jwt-auth ./cmd/rest-api/main.go
 
 
 # Stage 2: Create a minimal image
@@ -29,9 +29,12 @@ WORKDIR /app/
 # Copy the Go binary from the build stage
 COPY --from=build /app/migrate ./migrate
 COPY --from=build /app/go-jwt-auth ./go-jwt-auth
+COPY --from=build /app/deployments/rest-api-prod/startup.sh ./startup.sh
+
+RUN chmod +x ./startup.sh
 
 # Expose the application's port
 EXPOSE 8080
 
 # Command to run the Go application
-CMD ["sh", "-c", "./migrate && ./go-jwt-auth"]
+CMD ["sh", "-c", "./startup.sh"]
