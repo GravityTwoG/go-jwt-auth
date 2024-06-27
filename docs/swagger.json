@@ -86,7 +86,7 @@
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/controllers.LoginResponeDTO"
+                            "$ref": "#/definitions/controllers.LoginResponseDTO"
                         }
                     },
                     "400": {
@@ -195,7 +195,7 @@
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/controllers.RefreshTokensResponeDTO"
+                            "$ref": "#/definitions/controllers.RefreshTokensResponseDTO"
                         }
                     },
                     "401": {
@@ -270,7 +270,7 @@
                 }
             }
         },
-        "controllers.LoginResponeDTO": {
+        "controllers.LoginResponseDTO": {
             "type": "object",
             "properties": {
                 "accessToken": {
@@ -284,7 +284,7 @@
                 }
             }
         },
-        "controllers.RefreshTokensResponeDTO": {
+        "controllers.RefreshTokensResponseDTO": {
             "type": "object",
             "properties": {
                 "accessToken": {

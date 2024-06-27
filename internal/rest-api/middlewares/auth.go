@@ -3,12 +3,11 @@ package middlewares
 import (
 	"errors"
 	"go-jwt-auth/internal/rest-api/dto"
+	"go-jwt-auth/internal/rest-api/services"
 	"net/http"
 	"strings"
-	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/golang-jwt/jwt/v4"
 )
 
 var ErrAuthHeaderMissing = errors.New("header 'Authorization' is missing")
@@ -27,34 +26,20 @@ func AuthMiddleware(jwtSecretKey []byte) gin.HandlerFunc {
 			return
 		}
 
-		token, err := parseJWT(tokenString, jwtSecretKey)
-
+		claims, err := services.ParseJWT(tokenString, jwtSecretKey)
 		if err != nil {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid or expired token"})
 			c.Abort()
 			return
 		}
 
-		if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
-			// Check if the token has expired
-			if float64(time.Now().Unix()) > claims["exp"].(float64) {
-				c.JSON(http.StatusUnauthorized, gin.H{"error": "Token has expired"})
-				c.Abort()
-				return
-			}
-
-			// Set user to the context
-			userDTO := dto.UserDTO{
-				ID:    uint(claims["id"].(float64)),
-				Email: claims["email"].(string),
-			}
-			c.Set("user", userDTO)
-			c.Next()
-			return
+		// Set user to the context
+		userDTO := dto.UserDTO{
+			ID:    claims.ID,
+			Email: claims.Email,
 		}
-
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token claims"})
-		c.Abort()
+		c.Set("user", userDTO)
+		c.Next()
 	}
 }
 
@@ -79,7 +64,7 @@ func AnonymousMiddleware(jwtSecretKey []byte) gin.HandlerFunc {
 			return
 		}
 
-		_, err = parseJWT(tokenString, jwtSecretKey)
+		_, err = services.ParseJWT(tokenString, jwtSecretKey)
 		// If the token is not valid or it is not provided, continue
 		if err != nil {
 			c.Next()
@@ -106,16 +91,4 @@ func parseBearerToken(c *gin.Context) (string, error) {
 	}
 
 	return parts[1], nil
-}
-
-func parseJWT(tokenString string, jwtSecretKey []byte) (*jwt.Token, error) {
-	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
-		// Validate the alg is what we expect
-		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, jwt.ErrSignatureInvalid
-		}
-		return jwtSecretKey, nil
-	})
-
-	return token, err
 }

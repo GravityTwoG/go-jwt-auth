@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"errors"
 	domainerrors "go-jwt-auth/internal/rest-api/domain-errors"
 	"go-jwt-auth/internal/rest-api/dto"
 	"go-jwt-auth/internal/rest-api/entities"
@@ -11,6 +12,7 @@ import (
 	"github.com/golang-jwt/jwt/v4"
 )
 
+const InvalidRefreshToken = "INVALID_REFRESH_TOKEN"
 const RefreshTokenExpired = "REFRESH_TOKEN_EXPIRED"
 const InvalidUserAgent = "INVALID_USER_AGENT"
 
@@ -149,12 +151,20 @@ func (s *authService) Login(
 		return nil, nil, err
 	}
 
-	accessToken, err := s.newJWT(user, s.accessTokenTTLsec)
+	accessToken, err := newJWT(
+		user,
+		s.accessTokenTTLsec,
+		s.jwtSecretKey,
+	)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	refreshToken, err := s.newJWT(user, s.refreshTokenTTLsec)
+	refreshToken, err := newJWT(
+		user,
+		s.refreshTokenTTLsec,
+		s.jwtSecretKey,
+	)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -172,42 +182,76 @@ func (s *authService) Login(
 		return nil, nil, err
 	}
 
-	tokens := &Tokens{
+	return user, &Tokens{
 		AccessToken:  accessToken,
 		RefreshToken: *refreshTokenEntity,
-	}
-
-	return user, tokens, nil
+	}, nil
 }
 
 func (s *authService) RefreshTokens(
 	ctx context.Context,
 	dto *RefreshTokensDTO,
 ) (*Tokens, domainerrors.ErrDomain) {
-	existingRefreshToken, err := s.refreshTokenRepository.
+
+	tokenClaims, jwtErr := ParseJWT(dto.OldToken, s.jwtSecretKey)
+	if jwtErr != nil {
+		return nil, domainerrors.NewErrInvalidInput(
+			InvalidRefreshToken,
+			"invalid or expired refresh token",
+		)
+	}
+
+	oldRefreshToken, err := s.refreshTokenRepository.
 		GetByToken(ctx, dto.OldToken)
+
 	if err != nil {
+		// Token with valid signature and expiration provided,
+		// but this token doesn't exist in DB.
+		// Maybe was stolen and deleted by another person.
+		if err.Kind() == domainerrors.EntityNotFound {
+			s.refreshTokenRepository.DeleteByUserID(
+				ctx,
+				tokenClaims.ID,
+			)
+
+			return nil, domainerrors.NewErrEntityNotFound(
+				"REFRESH_TOKEN_NOT_FOUND",
+				"refresh token not found. All refresh tokens were deleted",
+			)
+		}
+
 		return nil, err
 	}
 
-	if existingRefreshToken.GetUserAgent() != dto.UserAgent {
+	if oldRefreshToken.GetUserAgent() != dto.UserAgent {
 		return nil, domainerrors.NewErrInvalidInput(
 			InvalidUserAgent,
 			"invalid user agent",
 		)
 	}
 
-	if existingRefreshToken.Expired() {
+	if oldRefreshToken.Expired() {
 		return nil, domainerrors.NewErrInvalidInput(
 			RefreshTokenExpired,
 			"refresh token expired",
 		)
 	}
 
-	// create new token
-	newRefreshToken, err := s.newJWT(
-		existingRefreshToken.GetUser(),
+	// create new access token
+	accessToken, err := newJWT(
+		oldRefreshToken.GetUser(),
+		s.accessTokenTTLsec,
+		s.jwtSecretKey,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	// create new refresh token
+	newRefreshToken, err := newJWT(
+		oldRefreshToken.GetUser(),
 		s.refreshTokenTTLsec,
+		s.jwtSecretKey,
 	)
 	if err != nil {
 		return nil, err
@@ -215,7 +259,7 @@ func (s *authService) RefreshTokens(
 
 	newRefreshTokenEntity := entities.NewRefreshToken(
 		newRefreshToken,
-		existingRefreshToken.GetUserId(),
+		oldRefreshToken.GetUserId(),
 		s.refreshTokenTTLsec,
 		dto.IP,
 		dto.UserAgent,
@@ -226,30 +270,21 @@ func (s *authService) RefreshTokens(
 	}
 
 	// delete old token
-	err = s.refreshTokenRepository.Delete(ctx, existingRefreshToken)
+	err = s.refreshTokenRepository.Delete(ctx, oldRefreshToken)
 	if err != nil {
 		return nil, err
 	}
 
-	accessToken, err := s.newJWT(
-		existingRefreshToken.GetUser(),
-		s.accessTokenTTLsec,
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	tokens := &Tokens{
+	return &Tokens{
 		AccessToken:  accessToken,
 		RefreshToken: *newRefreshTokenEntity,
-	}
-
-	return tokens, nil
+	}, nil
 }
 
-func (s *authService) newJWT(
+func newJWT(
 	user *entities.User,
 	ttlSec int,
+	secretKey []byte,
 ) (string, domainerrors.ErrDomain) {
 
 	token := jwt.New(jwt.SigningMethodHS256)
@@ -261,12 +296,44 @@ func (s *authService) newJWT(
 		Add(time.Duration(ttlSec) * time.Second).
 		Unix()
 
-	tokenString, err := token.SignedString(s.jwtSecretKey)
+	tokenString, err := token.SignedString(secretKey)
 	if err != nil {
 		return "", domainerrors.NewErrUnknown(err)
 	}
 
 	return tokenString, nil
+}
+
+type TokenClaims struct {
+	ID    uint
+	Email string
+}
+
+func ParseJWT(tokenString string, jwtSecretKey []byte) (*TokenClaims, error) {
+	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+		// Validate the alg is what we expect
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, jwt.ErrSignatureInvalid
+		}
+		return jwtSecretKey, nil
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	claims, ok := token.Claims.(jwt.MapClaims)
+	if !ok || !token.Valid {
+		return nil, err
+	}
+
+	if float64(time.Now().Unix()) > claims["exp"].(float64) {
+		return nil, errors.New("token-expired")
+	}
+
+	return &TokenClaims{
+		ID:    uint(claims["id"].(float64)),
+		Email: claims["email"].(string),
+	}, nil
 }
 
 func (s *authService) GetUserByID(

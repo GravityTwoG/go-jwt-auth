@@ -92,7 +92,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/controllers.LoginResponeDTO"
+                            "$ref": "#/definitions/controllers.LoginResponseDTO"
                         }
                     },
                     "400": {
@@ -201,7 +201,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/controllers.RefreshTokensResponeDTO"
+                            "$ref": "#/definitions/controllers.RefreshTokensResponseDTO"
                         }
                     },
                     "401": {
@@ -276,7 +276,7 @@ const docTemplate = `{
                 }
             }
         },
-        "controllers.LoginResponeDTO": {
+        "controllers.LoginResponseDTO": {
             "type": "object",
             "properties": {
                 "accessToken": {
@@ -290,7 +290,7 @@ const docTemplate = `{
                 }
             }
         },
-        "controllers.RefreshTokensResponeDTO": {
+        "controllers.RefreshTokensResponseDTO": {
             "type": "object",
             "properties": {
                 "accessToken": {

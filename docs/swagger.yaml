@@ -14,7 +14,7 @@ definitions:
       kind:
         type: string
     type: object
-  controllers.LoginResponeDTO:
+  controllers.LoginResponseDTO:
     properties:
       accessToken:
         type: string
@@ -23,7 +23,7 @@ definitions:
       user:
         $ref: '#/definitions/dto.UserDTO'
     type: object
-  controllers.RefreshTokensResponeDTO:
+  controllers.RefreshTokensResponseDTO:
     properties:
       accessToken:
         type: string
@@ -139,7 +139,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/controllers.LoginResponeDTO'
+            $ref: '#/definitions/controllers.LoginResponseDTO'
         "400":
           description: Bad Request
           schema:
@@ -202,7 +202,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/controllers.RefreshTokensResponeDTO'
+            $ref: '#/definitions/controllers.RefreshTokensResponseDTO'
         "401":
           description: Unauthorized
           schema:

@@ -30,13 +30,13 @@ type ErrorResponseDTO struct {
 	Error string `json:"error"`
 }
 
-type LoginResponeDTO struct {
-	AccessToken  string `json:"accessToken"`
-	RefreshToken string `json:"refreshToken"`
-	User         dto.UserDTO
+type LoginResponseDTO struct {
+	AccessToken  string      `json:"accessToken"`
+	RefreshToken string      `json:"refreshToken"`
+	User         dto.UserDTO `json:"user"`
 }
 
-type RefreshTokensResponeDTO struct {
+type RefreshTokensResponseDTO struct {
 	AccessToken  string `json:"accessToken"`
 	RefreshToken string `json:"refreshToken"`
 }
@@ -59,6 +59,8 @@ func NewAuthController(
 		authService: authService,
 
 		jwtSecretKey: []byte(jwtSecretKey),
+		domain:       domain,
+		path:         path,
 	}
 }
 
@@ -112,7 +114,7 @@ func (ac *authController) register(c *gin.Context) {
 // @Accept		json
 // @Produce	json
 // @Param		body	body		dto.LoginDTO	true	"LoginDTO"
-// @Success	200		{object}	LoginResponeDTO
+// @Success	200		{object}	LoginResponseDTO
 // @Failure	400		{object}	ErrorResponseDTO
 // @Failure	401		{object}	ErrorResponseDTO
 // @Router		/auth/login [post]
@@ -143,7 +145,7 @@ func (ac *authController) login(c *gin.Context) {
 
 	setRefreshTokenCookie(c, &tokens.RefreshToken, ac.domain, ac.path)
 
-	c.JSON(http.StatusOK, &LoginResponeDTO{
+	c.JSON(http.StatusOK, &LoginResponseDTO{
 		AccessToken:  tokens.AccessToken,
 		RefreshToken: tokens.RefreshToken.GetToken(),
 		User:         *dto.FromEntity(user),
@@ -155,7 +157,7 @@ func (ac *authController) login(c *gin.Context) {
 // @Description Refresh tokens, also sets new refresh token in cookie
 // @Security	ApiKeyAuth
 // @Produce	json
-// @Success	200	{object}	RefreshTokensResponeDTO
+// @Success	200	{object}	RefreshTokensResponseDTO
 // @Failure	401	{object}	ErrorResponseDTO
 // @Router		/auth/refresh-tokens [post]
 func (ac *authController) refreshTokens(c *gin.Context) {
@@ -189,7 +191,7 @@ func (ac *authController) refreshTokens(c *gin.Context) {
 
 	setRefreshTokenCookie(c, &tokens.RefreshToken, ac.domain, ac.path)
 
-	c.JSON(http.StatusOK, &RefreshTokensResponeDTO{
+	c.JSON(http.StatusOK, &RefreshTokensResponseDTO{
 		AccessToken:  tokens.AccessToken,
 		RefreshToken: tokens.RefreshToken.GetToken(),
 	})
