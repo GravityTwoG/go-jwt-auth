@@ -2,7 +2,11 @@
 
 Run whole system using command: `make infra`
 
-Swagger docs located by url: http://localhost:8080/swagger/index.html
+Swagger docs located by url: https://jwt-auth-api.abazbekov.ru/swagger/index.html
+
+## Frontend
+
+- https://github.com/GravityTwoG/react-jwt-auth
 
 # Folder structure
 
