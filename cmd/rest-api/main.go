@@ -53,17 +53,19 @@ func main() {
 		userService,
 		refreshTokenRepo,
 		cfg.JWTSecretKey,
-		cfg.JWTAccessTTLsec,
+		cfg.AccessTokenTTLsec,
 		cfg.RefreshTokenTTLsec,
 	)
 
 	authController := controllers.NewAuthController(
 		authService,
 		cfg.JWTSecretKey,
+		cfg.Domain,
+		"/api/auth",
 	)
 
 	api := r.Group("/api")
-	authController.RegisterRoutes(api)
+	authController.RegisterRoutes(api.Group("/auth"))
 
 	ctx := context.Background()
 	ctxCancel, cancel := context.WithCancel(ctx)

@@ -19,7 +19,7 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
-        "/active-sessions": {
+        "/auth/active-sessions": {
             "get": {
                 "security": [
                     {
@@ -44,7 +44,27 @@ const docTemplate = `{
                 }
             }
         },
-        "/login": {
+        "/auth/config": {
+            "get": {
+                "description": "Get TTL of tokens",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "Get tokens config",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ConfigDTO"
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/login": {
             "post": {
                 "description": "Login user, also sets refresh token in cookie",
                 "consumes": [
@@ -90,7 +110,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/logout": {
+        "/auth/logout": {
             "post": {
                 "security": [
                     {
@@ -114,7 +134,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/logout-all": {
+        "/auth/logout-all": {
             "post": {
                 "security": [
                     {
@@ -138,7 +158,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/me": {
+        "/auth/me": {
             "get": {
                 "security": [
                     {
@@ -162,7 +182,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/refresh-tokens": {
+        "/auth/refresh-tokens": {
             "post": {
                 "security": [
                     {
@@ -193,7 +213,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/register": {
+        "/auth/register": {
             "post": {
                 "consumes": [
                     "application/json"
@@ -262,6 +282,9 @@ const docTemplate = `{
                 "accessToken": {
                     "type": "string"
                 },
+                "refreshToken": {
+                    "type": "string"
+                },
                 "user": {
                     "$ref": "#/definitions/dto.UserDTO"
                 }
@@ -272,6 +295,20 @@ const docTemplate = `{
             "properties": {
                 "accessToken": {
                     "type": "string"
+                },
+                "refreshToken": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.ConfigDTO": {
+            "type": "object",
+            "properties": {
+                "accessTokenTTLsec": {
+                    "type": "integer"
+                },
+                "refreshTokenTTLsec": {
+                    "type": "integer"
                 }
             }
         },

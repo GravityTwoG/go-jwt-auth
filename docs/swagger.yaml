@@ -18,6 +18,8 @@ definitions:
     properties:
       accessToken:
         type: string
+      refreshToken:
+        type: string
       user:
         $ref: '#/definitions/dto.UserDTO'
     type: object
@@ -25,6 +27,15 @@ definitions:
     properties:
       accessToken:
         type: string
+      refreshToken:
+        type: string
+    type: object
+  dto.ConfigDTO:
+    properties:
+      accessTokenTTLsec:
+        type: integer
+      refreshTokenTTLsec:
+        type: integer
     type: object
   dto.LoginDTO:
     properties:
@@ -82,7 +93,7 @@ info:
   title: Go JWT Auth API
   version: "1.0"
 paths:
-  /active-sessions:
+  /auth/active-sessions:
     get:
       description: Get active sessions (list of refresh tokens)
       produces:
@@ -97,7 +108,20 @@ paths:
       summary: Get active sessions
       tags:
       - Auth
-  /login:
+  /auth/config:
+    get:
+      description: Get TTL of tokens
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.ConfigDTO'
+      summary: Get tokens config
+      tags:
+      - Auth
+  /auth/login:
     post:
       consumes:
       - application/json
@@ -127,7 +151,7 @@ paths:
       summary: Login user
       tags:
       - Auth
-  /logout:
+  /auth/logout:
     post:
       produces:
       - application/json
@@ -141,7 +165,7 @@ paths:
       summary: Logout user
       tags:
       - Auth
-  /logout-all:
+  /auth/logout-all:
     post:
       produces:
       - application/json
@@ -155,7 +179,7 @@ paths:
       summary: Logout all sessions
       tags:
       - Auth
-  /me:
+  /auth/me:
     get:
       produces:
       - application/json
@@ -169,7 +193,7 @@ paths:
       summary: Get current user
       tags:
       - Auth
-  /refresh-tokens:
+  /auth/refresh-tokens:
     post:
       description: Refresh tokens, also sets new refresh token in cookie
       produces:
@@ -188,7 +212,7 @@ paths:
       summary: Refresh tokens
       tags:
       - Auth
-  /register:
+  /auth/register:
     post:
       consumes:
       - application/json

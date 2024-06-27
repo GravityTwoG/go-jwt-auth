@@ -106,7 +106,7 @@ type authService struct {
 	refreshTokenRepository RefreshTokenRepository
 
 	jwtSecretKey       []byte
-	jwtAccessTTLsec    int
+	accessTokenTTLsec  int
 	refreshTokenTTLsec int
 }
 
@@ -124,7 +124,7 @@ func NewAuthService(
 		refreshTokenRepository: refreshTokenRepository,
 
 		jwtSecretKey:       []byte(jwtSecretKey),
-		jwtAccessTTLsec:    jwtAccessTTL,
+		accessTokenTTLsec:  jwtAccessTTL,
 		refreshTokenTTLsec: refreshTokenTTL,
 	}
 }
@@ -149,26 +149,32 @@ func (s *authService) Login(
 		return nil, nil, err
 	}
 
-	accessToken, err := s.newJWT(user)
+	accessToken, err := s.newJWT(user, s.accessTokenTTLsec)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	refreshToken := entities.NewRefreshToken(
+	refreshToken, err := s.newJWT(user, s.refreshTokenTTLsec)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	refreshTokenEntity := entities.NewRefreshToken(
+		refreshToken,
 		user.GetId(),
 		s.refreshTokenTTLsec,
 		ip,
 		userAgent,
 	)
 
-	err = s.refreshTokenRepository.Create(ctx, refreshToken)
+	err = s.refreshTokenRepository.Create(ctx, refreshTokenEntity)
 	if err != nil {
 		return nil, nil, err
 	}
 
 	tokens := &Tokens{
 		AccessToken:  accessToken,
-		RefreshToken: *refreshToken,
+		RefreshToken: *refreshTokenEntity,
 	}
 
 	return user, tokens, nil
@@ -199,13 +205,22 @@ func (s *authService) RefreshTokens(
 	}
 
 	// create new token
-	newRefreshToken := entities.NewRefreshToken(
+	newRefreshToken, err := s.newJWT(
+		existingRefreshToken.GetUser(),
+		s.refreshTokenTTLsec,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	newRefreshTokenEntity := entities.NewRefreshToken(
+		newRefreshToken,
 		existingRefreshToken.GetUserId(),
 		s.refreshTokenTTLsec,
 		dto.IP,
 		dto.UserAgent,
 	)
-	err = s.refreshTokenRepository.Create(ctx, newRefreshToken)
+	err = s.refreshTokenRepository.Create(ctx, newRefreshTokenEntity)
 	if err != nil {
 		return nil, err
 	}
@@ -216,14 +231,17 @@ func (s *authService) RefreshTokens(
 		return nil, err
 	}
 
-	accessToken, err := s.newJWT(existingRefreshToken.GetUser())
+	accessToken, err := s.newJWT(
+		existingRefreshToken.GetUser(),
+		s.accessTokenTTLsec,
+	)
 	if err != nil {
 		return nil, err
 	}
 
 	tokens := &Tokens{
 		AccessToken:  accessToken,
-		RefreshToken: *newRefreshToken,
+		RefreshToken: *newRefreshTokenEntity,
 	}
 
 	return tokens, nil
@@ -231,13 +249,17 @@ func (s *authService) RefreshTokens(
 
 func (s *authService) newJWT(
 	user *entities.User,
+	ttlSec int,
 ) (string, domainerrors.ErrDomain) {
 
 	token := jwt.New(jwt.SigningMethodHS256)
 	claims := token.Claims.(jwt.MapClaims)
 	claims["id"] = user.GetId()
 	claims["email"] = user.GetEmail()
-	claims["exp"] = time.Now().Add(time.Duration(s.jwtAccessTTLsec) * time.Second).Unix()
+	claims["exp"] = time.
+		Now().
+		Add(time.Duration(ttlSec) * time.Second).
+		Unix()
 
 	tokenString, err := token.SignedString(s.jwtSecretKey)
 	if err != nil {
@@ -267,7 +289,7 @@ func (s *authService) GetConfig(
 	ctx context.Context,
 ) *dto.ConfigDTO {
 	return &dto.ConfigDTO{
-		AccessTokenTTLsec:  s.jwtAccessTTLsec,
+		AccessTokenTTLsec:  s.accessTokenTTLsec,
 		RefreshTokenTTLsec: s.refreshTokenTTLsec,
 	}
 }

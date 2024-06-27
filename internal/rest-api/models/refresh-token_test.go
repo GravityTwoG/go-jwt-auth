@@ -15,6 +15,7 @@ func TestRefreshTokenFromEntity(t *testing.T) {
 		t.Parallel()
 
 		refreshToken := entities.NewRefreshToken(
+			"token",
 			1,
 			3600,
 			"127.0.0.1",

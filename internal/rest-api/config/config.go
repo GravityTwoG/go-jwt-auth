@@ -13,12 +13,14 @@ import (
 
 type Config struct {
 	JWTSecretKey       string
-	JWTAccessTTLsec    int
+	AccessTokenTTLsec  int
 	RefreshTokenTTLsec int
 
 	Port string
 
 	AllowedOrigins []string
+
+	Domain string
 
 	DSN string
 }
@@ -36,9 +38,9 @@ func MustLoadConfig() *Config {
 		log.Fatal("JWT_SECRET_KEY not set in .env file")
 	}
 
-	config.JWTAccessTTLsec, err = strconv.Atoi(os.Getenv("JWT_ACCESS_TTL_SEC"))
+	config.AccessTokenTTLsec, err = strconv.Atoi(os.Getenv("ACCESS_TOKEN_TTL_SEC"))
 	if err != nil {
-		log.Fatal("Invalid JWT_ACCESS_TTL_SEC value in .env file")
+		log.Fatal("Invalid ACCESS_TOKEN_TTL_SEC value in .env file")
 	}
 
 	config.RefreshTokenTTLsec, err = strconv.Atoi(os.Getenv("REFRESH_TOKEN_TTL_SEC"))
@@ -55,6 +57,11 @@ func MustLoadConfig() *Config {
 				strings.TrimSpace(host),
 			)
 		}
+	}
+
+	config.Domain = os.Getenv("DOMAIN")
+	if config.Domain == "" {
+		log.Fatal("Invalid DOMAIN value in .env file")
 	}
 
 	config.DSN = os.Getenv("DSN")

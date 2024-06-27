@@ -2,8 +2,6 @@ package entities
 
 import (
 	"time"
-
-	"github.com/google/uuid"
 )
 
 type RefreshToken struct {
@@ -23,13 +21,14 @@ type RefreshToken struct {
 }
 
 func NewRefreshToken(
+	token string,
 	userId uint,
 	ttlSec int,
 	ip string,
 	userAgent string,
 ) *RefreshToken {
 	return &RefreshToken{
-		token:  uuid.New().String(),
+		token:  token,
 		ttlSec: ttlSec,
 
 		userId: userId,

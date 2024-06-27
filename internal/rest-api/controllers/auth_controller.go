@@ -30,15 +30,30 @@ type ErrorResponseDTO struct {
 	Error string `json:"error"`
 }
 
+type LoginResponeDTO struct {
+	AccessToken  string `json:"accessToken"`
+	RefreshToken string `json:"refreshToken"`
+	User         dto.UserDTO
+}
+
+type RefreshTokensResponeDTO struct {
+	AccessToken  string `json:"accessToken"`
+	RefreshToken string `json:"refreshToken"`
+}
+
 type authController struct {
 	authService services.AuthService
 
 	jwtSecretKey []byte
+	domain       string
+	path         string
 }
 
 func NewAuthController(
 	authService services.AuthService,
 	jwtSecretKey string,
+	domain string,
+	path string,
 ) *authController {
 	return &authController{
 		authService: authService,
@@ -70,7 +85,7 @@ func (ac *authController) RegisterRoutes(r *gin.RouterGroup) {
 // @Param		body	body		dto.RegisterDTO	true	"RegisterDTO"
 // @Success	201		{object}	dto.UserDTO
 // @Failure	400		{object}	ErrorResponseDTO
-// @Router		/register [post]
+// @Router		/auth/register [post]
 func (ac *authController) register(c *gin.Context) {
 
 	registerDTO, err := ginutils.DecodeJSON[*dto.RegisterDTO](c)
@@ -91,11 +106,6 @@ func (ac *authController) register(c *gin.Context) {
 	c.JSON(http.StatusCreated, dto.FromEntity(user))
 }
 
-type LoginResponeDTO struct {
-	AccessToken string `json:"accessToken"`
-	User        dto.UserDTO
-}
-
 // @Tags		Auth
 // @Summary	Login user
 // @Description Login user, also sets refresh token in cookie
@@ -105,7 +115,7 @@ type LoginResponeDTO struct {
 // @Success	200		{object}	LoginResponeDTO
 // @Failure	400		{object}	ErrorResponseDTO
 // @Failure	401		{object}	ErrorResponseDTO
-// @Router		/login [post]
+// @Router		/auth/login [post]
 func (ac *authController) login(c *gin.Context) {
 
 	loginDTO, err := ginutils.DecodeJSON[*dto.LoginDTO](c)
@@ -131,16 +141,13 @@ func (ac *authController) login(c *gin.Context) {
 		return
 	}
 
-	setRefreshTokenCookie(c, &tokens.RefreshToken)
+	setRefreshTokenCookie(c, &tokens.RefreshToken, ac.domain, ac.path)
 
-	c.JSON(http.StatusOK, gin.H{
-		"accessToken": tokens.AccessToken,
-		"user":        dto.FromEntity(user),
+	c.JSON(http.StatusOK, &LoginResponeDTO{
+		AccessToken:  tokens.AccessToken,
+		RefreshToken: tokens.RefreshToken.GetToken(),
+		User:         *dto.FromEntity(user),
 	})
-}
-
-type RefreshTokensResponeDTO struct {
-	AccessToken string `json:"accessToken"`
 }
 
 // @Tags		Auth
@@ -150,7 +157,7 @@ type RefreshTokensResponeDTO struct {
 // @Produce	json
 // @Success	200	{object}	RefreshTokensResponeDTO
 // @Failure	401	{object}	ErrorResponseDTO
-// @Router		/refresh-tokens [post]
+// @Router		/auth/refresh-tokens [post]
 func (ac *authController) refreshTokens(c *gin.Context) {
 
 	refreshToken, err := c.Cookie(cookieName)
@@ -173,16 +180,19 @@ func (ac *authController) refreshTokens(c *gin.Context) {
 		isExpired := derr.Code() == services.RefreshTokenExpired
 		notFound := derr.Code() == domainerrors.EntityNotFound
 		if isExpired || notFound {
-			resetCookie(c, cookieName)
+			resetCookie(c, cookieName, ac.domain, ac.path)
 		}
 
 		writeError(c, derr)
 		return
 	}
 
-	setRefreshTokenCookie(c, &tokens.RefreshToken)
+	setRefreshTokenCookie(c, &tokens.RefreshToken, ac.domain, ac.path)
 
-	c.JSON(http.StatusOK, gin.H{"accessToken": tokens.AccessToken})
+	c.JSON(http.StatusOK, &RefreshTokensResponeDTO{
+		AccessToken:  tokens.AccessToken,
+		RefreshToken: tokens.RefreshToken.GetToken(),
+	})
 }
 
 // @Tags		Auth
@@ -190,7 +200,7 @@ func (ac *authController) refreshTokens(c *gin.Context) {
 // @Security	ApiKeyAuth
 // @Produce	json
 // @Success	200	{object}	dto.UserDTO
-// @Router		/me [get]
+// @Router		/auth/me [get]
 func (ac *authController) me(c *gin.Context) {
 	userDTO := middlewares.ExtractUser(c)
 
@@ -209,7 +219,7 @@ func (ac *authController) me(c *gin.Context) {
 // @Security	ApiKeyAuth
 // @Produce	json
 // @Success	200	{object}	dto.SessionsDTO
-// @Router		/active-sessions [get]
+// @Router		/auth/active-sessions [get]
 func (ac *authController) activeSessions(c *gin.Context) {
 	userDTO := middlewares.ExtractUser(c)
 
@@ -232,7 +242,7 @@ func (ac *authController) activeSessions(c *gin.Context) {
 // @Description	Get TTL of tokens
 // @Produce	json
 // @Success	200	{object}	dto.ConfigDTO
-// @Router		/config [get]
+// @Router		/auth/config [get]
 func (ac *authController) config(c *gin.Context) {
 	config := ac.authService.GetConfig(c)
 	c.JSON(http.StatusOK, config)
@@ -243,14 +253,14 @@ func (ac *authController) config(c *gin.Context) {
 // @Security	ApiKeyAuth
 // @Produce	json
 // @Success	200	{object}	CommonResponseDTO
-// @Router		/logout [post]
+// @Router		/auth/logout [post]
 func (ac *authController) logout(c *gin.Context) {
 	refreshToken, err := c.Cookie(cookieName)
 	if err != nil {
 		// Should logout in any case
 
 		// Delete refresh token from cookie
-		resetCookie(c, cookieName)
+		resetCookie(c, cookieName, ac.domain, ac.path)
 
 		c.JSON(http.StatusOK, gin.H{"message": err.Error()})
 	} else {
@@ -261,7 +271,7 @@ func (ac *authController) logout(c *gin.Context) {
 		)
 
 		// Delete refresh token from cookie
-		resetCookie(c, cookieName)
+		resetCookie(c, cookieName, ac.domain, ac.path)
 
 		c.JSON(http.StatusOK, gin.H{"message": "Logged out"})
 	}
@@ -272,7 +282,7 @@ func (ac *authController) logout(c *gin.Context) {
 // @Security	ApiKeyAuth
 // @Produce	json
 // @Success	200	{object}	CommonResponseDTO
-// @Router		/logout-all [post]
+// @Router		/auth/logout-all [post]
 func (ac *authController) logoutAll(c *gin.Context) {
 	refreshToken, err := c.Cookie(cookieName)
 	if err != nil {
@@ -298,7 +308,7 @@ func (ac *authController) logoutAll(c *gin.Context) {
 	}
 
 	// Delete refresh token from cookie
-	resetCookie(c, cookieName)
+	resetCookie(c, cookieName, ac.domain, ac.path)
 
 	c.JSON(http.StatusOK, gin.H{"message": "Logged out"})
 }
@@ -306,15 +316,22 @@ func (ac *authController) logoutAll(c *gin.Context) {
 func setRefreshTokenCookie(
 	c *gin.Context,
 	refreshToken *entities.RefreshToken,
+	domain string,
+	path string,
 ) {
 	c.SetCookie(
 		cookieName, refreshToken.GetToken(),
-		refreshToken.GetTtlSec(), "/", "", true, true,
+		refreshToken.GetTtlSec(), path, domain, true, true,
 	)
 }
 
-func resetCookie(c *gin.Context, name string) {
-	c.SetCookie(name, "", -1, "/", "", true, true)
+func resetCookie(
+	c *gin.Context,
+	name string,
+	domain string,
+	path string,
+) {
+	c.SetCookie(name, "", -1, path, domain, true, true)
 }
 
 func writeError(
