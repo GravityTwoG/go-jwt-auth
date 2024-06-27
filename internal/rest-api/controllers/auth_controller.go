@@ -239,7 +239,11 @@ func (ac *authController) logout(c *gin.Context) {
 
 		c.JSON(http.StatusOK, gin.H{"message": err.Error()})
 	} else {
-		ac.authService.Logout(c, refreshToken)
+		ac.authService.Logout(
+			c,
+			refreshToken,
+			c.GetHeader("User-Agent"),
+		)
 
 		// Delete refresh token from cookie
 		resetCookie(c, cookieName)

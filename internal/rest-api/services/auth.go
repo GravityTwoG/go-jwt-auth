@@ -12,6 +12,7 @@ import (
 )
 
 const RefreshTokenExpired = "REFRESH_TOKEN_EXPIRED"
+const InvalidUserAgent = "INVALID_USER_AGENT"
 
 type Tokens struct {
 	AccessToken  string
@@ -85,6 +86,7 @@ type AuthService interface {
 	Logout(
 		ctx context.Context,
 		refreshToken string,
+		userAgent string,
 	) domainerrors.ErrDomain
 
 	LogoutAll(
@@ -179,6 +181,13 @@ func (s *authService) RefreshTokens(
 		return nil, err
 	}
 
+	if existingRefreshToken.GetUserAgent() != dto.UserAgent {
+		return nil, domainerrors.NewErrInvalidInput(
+			InvalidUserAgent,
+			"invalid user agent",
+		)
+	}
+
 	if existingRefreshToken.Expired() {
 		return nil, domainerrors.NewErrInvalidInput(
 			RefreshTokenExpired,
@@ -254,13 +263,22 @@ func (s *authService) ActiveSessions(
 func (s *authService) Logout(
 	ctx context.Context,
 	refreshToken string,
+	userAgent string,
 ) domainerrors.ErrDomain {
-	model, err := s.refreshTokenRepository.GetByToken(ctx, refreshToken)
+	existingRefreshToken, err := s.refreshTokenRepository.
+		GetByToken(ctx, refreshToken)
 	if err != nil {
 		return err
 	}
 
-	return s.refreshTokenRepository.Delete(ctx, model)
+	if existingRefreshToken.GetUserAgent() != userAgent {
+		return domainerrors.NewErrInvalidInput(
+			RefreshTokenExpired,
+			"refresh token expired",
+		)
+	}
+
+	return s.refreshTokenRepository.Delete(ctx, existingRefreshToken)
 }
 
 func (s *authService) LogoutAll(
