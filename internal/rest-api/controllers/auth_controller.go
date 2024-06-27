@@ -309,12 +309,12 @@ func setRefreshTokenCookie(
 ) {
 	c.SetCookie(
 		cookieName, refreshToken.GetToken(),
-		refreshToken.GetTtlSec(), "/", "", false, true,
+		refreshToken.GetTtlSec(), "/", "", true, true,
 	)
 }
 
 func resetCookie(c *gin.Context, name string) {
-	c.SetCookie(name, "", -1, "/", "", false, true)
+	c.SetCookie(name, "", -1, "/", "", true, true)
 }
 
 func writeError(

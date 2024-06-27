@@ -34,4 +34,4 @@ COPY --from=build /app/go-jwt-auth ./go-jwt-auth
 EXPOSE 8080
 
 # Command to run the Go application
-CMD ["./migrate && ./go-jwt-auth"]
+CMD ["sh", "-c", "./migrate && ./go-jwt-auth"]
