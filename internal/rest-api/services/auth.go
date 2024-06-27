@@ -36,9 +36,9 @@ type RefreshTokenRepository interface {
 		token string,
 	) (*entities.RefreshToken, domainerrors.ErrDomain)
 
-	GetByUserEmail(
+	GetByUserID(
 		ctx context.Context,
-		email string,
+		id uint,
 	) ([]*entities.RefreshToken, domainerrors.ErrDomain)
 
 	Delete(
@@ -78,10 +78,12 @@ type AuthService interface {
 		id uint,
 	) (*entities.User, domainerrors.ErrDomain)
 
-	ActiveSessions(
+	GetActiveSessions(
 		ctx context.Context,
-		email string,
+		id uint,
 	) ([]*entities.RefreshToken, domainerrors.ErrDomain)
+
+	GetConfig(ctx context.Context) *dto.ConfigDTO
 
 	Logout(
 		ctx context.Context,
@@ -91,7 +93,8 @@ type AuthService interface {
 
 	LogoutAll(
 		ctx context.Context,
-		userID uint,
+		refreshToken string,
+		userAgent string,
 	) domainerrors.ErrDomain
 
 	RunScheduledTasks(ctx context.Context)
@@ -252,12 +255,21 @@ func (s *authService) GetUserByID(
 	return s.userService.GetByID(ctx, id)
 }
 
-func (s *authService) ActiveSessions(
+func (s *authService) GetActiveSessions(
 	ctx context.Context,
-	email string,
+	id uint,
 ) ([]*entities.RefreshToken, domainerrors.ErrDomain) {
 
-	return s.refreshTokenRepository.GetByUserEmail(ctx, email)
+	return s.refreshTokenRepository.GetByUserID(ctx, id)
+}
+
+func (s *authService) GetConfig(
+	ctx context.Context,
+) *dto.ConfigDTO {
+	return &dto.ConfigDTO{
+		AccessTokenTTLsec:  s.jwtAccessTTLsec,
+		RefreshTokenTTLsec: s.refreshTokenTTLsec,
+	}
 }
 
 func (s *authService) Logout(
@@ -273,8 +285,8 @@ func (s *authService) Logout(
 
 	if existingRefreshToken.GetUserAgent() != userAgent {
 		return domainerrors.NewErrInvalidInput(
-			RefreshTokenExpired,
-			"refresh token expired",
+			InvalidUserAgent,
+			"invalid user agent",
 		)
 	}
 
@@ -283,9 +295,26 @@ func (s *authService) Logout(
 
 func (s *authService) LogoutAll(
 	ctx context.Context,
-	userID uint,
+	refreshToken string,
+	userAgent string,
 ) domainerrors.ErrDomain {
-	return s.refreshTokenRepository.DeleteByUserID(ctx, userID)
+	existingRefreshToken, err := s.refreshTokenRepository.
+		GetByToken(ctx, refreshToken)
+	if err != nil {
+		return err
+	}
+
+	if existingRefreshToken.GetUserAgent() != userAgent {
+		return domainerrors.NewErrInvalidInput(
+			InvalidUserAgent,
+			"invalid user agent",
+		)
+	}
+
+	return s.refreshTokenRepository.DeleteByUserID(
+		ctx,
+		existingRefreshToken.GetUserId(),
+	)
 }
 
 func (s *authService) RunScheduledTasks(ctx context.Context) {

@@ -62,7 +62,8 @@ func main() {
 		cfg.JWTSecretKey,
 	)
 
-	authController.RegisterRoutes(r)
+	api := r.Group("/api")
+	authController.RegisterRoutes(api)
 
 	ctx := context.Background()
 	ctxCancel, cancel := context.WithCancel(ctx)

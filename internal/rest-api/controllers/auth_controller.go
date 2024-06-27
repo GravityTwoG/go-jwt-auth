@@ -47,7 +47,7 @@ func NewAuthController(
 	}
 }
 
-func (ac *authController) RegisterRoutes(r *gin.Engine) {
+func (ac *authController) RegisterRoutes(r *gin.RouterGroup) {
 	anonMiddleware := middlewares.AnonymousMiddleware(ac.jwtSecretKey)
 	authMiddleware := middlewares.AuthMiddleware(ac.jwtSecretKey)
 
@@ -60,6 +60,7 @@ func (ac *authController) RegisterRoutes(r *gin.Engine) {
 
 	r.GET("/me", authMiddleware, ac.me)
 	r.GET("/active-sessions", authMiddleware, ac.activeSessions)
+	r.GET("/config", ac.config)
 }
 
 // @Tags		Auth
@@ -212,7 +213,10 @@ func (ac *authController) me(c *gin.Context) {
 func (ac *authController) activeSessions(c *gin.Context) {
 	userDTO := middlewares.ExtractUser(c)
 
-	sessions, err := ac.authService.ActiveSessions(c, userDTO.Email)
+	sessions, err := ac.authService.GetActiveSessions(
+		c,
+		userDTO.ID,
+	)
 	if err != nil {
 		writeError(c, err)
 		return
@@ -221,6 +225,17 @@ func (ac *authController) activeSessions(c *gin.Context) {
 	sessionsDTO := dto.SessionsDTOFromEntities(sessions)
 
 	c.JSON(http.StatusOK, sessionsDTO)
+}
+
+// @Tags		Auth
+// @Summary	Get tokens config
+// @Description	Get TTL of tokens
+// @Produce	json
+// @Success	200	{object}	dto.ConfigDTO
+// @Router		/config [get]
+func (ac *authController) config(c *gin.Context) {
+	config := ac.authService.GetConfig(c)
+	c.JSON(http.StatusOK, config)
 }
 
 // @Tags		Auth
@@ -259,8 +274,21 @@ func (ac *authController) logout(c *gin.Context) {
 // @Success	200	{object}	CommonResponseDTO
 // @Router		/logout-all [post]
 func (ac *authController) logoutAll(c *gin.Context) {
-	userDTO := middlewares.ExtractUser(c)
-	err := ac.authService.LogoutAll(c, userDTO.ID)
+	refreshToken, err := c.Cookie(cookieName)
+	if err != nil {
+		writeErrorWithStatus(
+			c,
+			http.StatusUnauthorized,
+			ErrRefreshTokenNotFound,
+		)
+		return
+	}
+
+	err = ac.authService.LogoutAll(
+		c,
+		refreshToken,
+		c.GetHeader("User-Agent"),
+	)
 	if err != nil {
 		c.JSON(
 			http.StatusInternalServerError,

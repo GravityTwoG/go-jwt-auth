@@ -92,8 +92,8 @@ func (m *mockRefreshTokenRepository) GetByToken(ctx context.Context, token strin
 	return refreshToken.(*entities.RefreshToken), nil
 }
 
-func (m *mockRefreshTokenRepository) GetByUserEmail(ctx context.Context, email string) ([]*entities.RefreshToken, domainerrors.ErrDomain) {
-	args := m.Called(ctx, email)
+func (m *mockRefreshTokenRepository) GetByUserID(ctx context.Context, id uint) ([]*entities.RefreshToken, domainerrors.ErrDomain) {
+	args := m.Called(ctx, id)
 
 	refreshTokens := args.Get(0)
 	err := args.Error(1)

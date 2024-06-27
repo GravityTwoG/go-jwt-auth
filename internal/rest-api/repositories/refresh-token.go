@@ -54,15 +54,15 @@ func (r *refreshTokenRepository) GetByToken(
 	return models.RefreshTokenFromModel(refreshToken), nil
 }
 
-func (r *refreshTokenRepository) GetByUserEmail(
+func (r *refreshTokenRepository) GetByUserID(
 	ctx context.Context,
-	email string,
+	id uint,
 ) ([]*entities.RefreshToken, domainerrors.ErrDomain) {
 
 	refreshTokens := []*models.RefreshToken{}
 	err := r.db.WithContext(ctx).
 		Preload("User").
-		Where(&models.RefreshToken{User: models.User{Email: email}}).
+		Where(&models.RefreshToken{UserID: id}).
 		Find(&refreshTokens).Error
 	if err != nil {
 		return nil, database.MapGormErrors(err, "refresh token")
