@@ -51,7 +51,7 @@ func UserFromDB(
 	}
 }
 
-func (u *User) GetId() uint {
+func (u *User) GetID() uint {
 	return u.id
 }
 

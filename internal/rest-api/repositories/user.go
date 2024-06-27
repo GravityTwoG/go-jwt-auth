@@ -9,16 +9,23 @@ import (
 	"go-jwt-auth/internal/rest-api/models"
 	"go-jwt-auth/internal/rest-api/services"
 
+	trmgorm "github.com/avito-tech/go-transaction-manager/drivers/gorm/v2"
+
 	"gorm.io/gorm"
 )
 
 type userRepository struct {
-	db *gorm.DB
+	db       *gorm.DB
+	txGetter *trmgorm.CtxGetter
 }
 
-func NewUserRepository(db *gorm.DB) services.UserRepository {
+func NewUserRepository(
+	db *gorm.DB,
+	txGetter *trmgorm.CtxGetter,
+) services.UserRepository {
 	return &userRepository{
-		db: db,
+		db:       db,
+		txGetter: txGetter,
 	}
 }
 
@@ -29,7 +36,9 @@ func (r *userRepository) Create(
 
 	userModel := models.UserFromEntity(user)
 
-	err := r.db.WithContext(ctx).Create(userModel).Error
+	err := r.txGetter.
+		DefaultTrOrDB(ctx, r.db).
+		Create(userModel).Error
 
 	if err != nil {
 		return database.MapGormErrors(err, "user")
@@ -45,7 +54,8 @@ func (r *userRepository) GetByID(
 ) (*entities.User, domainerrors.ErrDomain) {
 	userModel := models.User{}
 
-	err := r.db.WithContext(ctx).
+	err := r.txGetter.
+		DefaultTrOrDB(ctx, r.db).
 		Where(&models.User{ID: id}).
 		First(&userModel).Error
 
@@ -63,7 +73,8 @@ func (r *userRepository) GetByEmail(
 
 	userModel := models.User{}
 
-	err := r.db.WithContext(ctx).
+	err := r.txGetter.
+		DefaultTrOrDB(ctx, r.db).
 		Where(&models.User{Email: email}).
 		First(&userModel).Error
 

@@ -14,6 +14,11 @@ import (
 	"go-jwt-auth/internal/rest-api/repositories"
 	"go-jwt-auth/internal/rest-api/services"
 
+	trmgorm "github.com/avito-tech/go-transaction-manager/drivers/gorm/v2"
+	"github.com/avito-tech/go-transaction-manager/trm/v2"
+	"github.com/avito-tech/go-transaction-manager/trm/v2/manager"
+	"github.com/avito-tech/go-transaction-manager/trm/v2/settings"
+
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	swaggerFiles "github.com/swaggo/files"
@@ -45,11 +50,27 @@ func main() {
 		log.Fatal(err)
 	}
 
-	userRepo := repositories.NewUserRepository(db)
-	refreshTokenRepo := repositories.NewRefreshTokenRepository(db)
+	ctx := context.Background()
+	trManager := manager.Must(
+		trmgorm.NewDefaultFactory(db),
+		manager.WithSettings(trmgorm.MustSettings(
+			settings.Must(
+				settings.WithPropagation(trm.PropagationNested))),
+		),
+	)
+
+	userRepo := repositories.NewUserRepository(
+		db,
+		trmgorm.DefaultCtxGetter,
+	)
+	refreshTokenRepo := repositories.NewRefreshTokenRepository(
+		db,
+		trmgorm.DefaultCtxGetter,
+	)
 
 	userService := services.NewUserService(userRepo)
 	authService := services.NewAuthService(
+		trManager,
 		userService,
 		refreshTokenRepo,
 		cfg.JWTSecretKey,
@@ -67,7 +88,6 @@ func main() {
 	api := r.Group("/api")
 	authController.RegisterRoutes(api.Group("/auth"))
 
-	ctx := context.Background()
 	ctxCancel, cancel := context.WithCancel(ctx)
 	defer cancel()
 

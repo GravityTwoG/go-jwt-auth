@@ -9,7 +9,7 @@ type UserDTO struct {
 
 func FromEntity(user *entities.User) *UserDTO {
 	return &UserDTO{
-		ID:    user.GetId(),
+		ID:    user.GetID(),
 		Email: user.GetEmail(),
 	}
 }

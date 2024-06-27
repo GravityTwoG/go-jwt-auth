@@ -241,6 +241,7 @@ func TestAuthService_Login(t *testing.T) {
 			}
 
 			authService := services.NewAuthService(
+				nil,
 				mockUserService,
 				mockRefreshTokenRepository,
 				"secret_key",
@@ -251,7 +252,7 @@ func TestAuthService_Login(t *testing.T) {
 			user, tokens, err := authService.Login(context.Background(), tt.loginDTO, tt.ip, tt.userAgent)
 
 			if tt.expectedUser != nil {
-				assert.Equal(t, tt.expectedUser.GetId(), user.GetId())
+				assert.Equal(t, tt.expectedUser.GetID(), user.GetID())
 				assert.Equal(t, tt.expectedUser.GetEmail(), user.GetEmail())
 			} else {
 				assert.Nil(t, user)

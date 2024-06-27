@@ -66,7 +66,7 @@ func RefreshTokenFromDB(
 	}
 }
 
-func (rt *RefreshToken) GetId() uint {
+func (rt *RefreshToken) GetID() uint {
 	return rt.id
 }
 
@@ -74,11 +74,11 @@ func (rt *RefreshToken) GetToken() string {
 	return rt.token
 }
 
-func (rt *RefreshToken) GetTtlSec() int {
+func (rt *RefreshToken) GetTTLSec() int {
 	return rt.ttlSec
 }
 
-func (rt *RefreshToken) GetUserId() uint {
+func (rt *RefreshToken) GetUserID() uint {
 	return rt.userId
 }
 

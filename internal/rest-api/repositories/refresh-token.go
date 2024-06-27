@@ -8,16 +8,22 @@ import (
 	"go-jwt-auth/internal/rest-api/models"
 	"go-jwt-auth/internal/rest-api/services"
 
+	trmgorm "github.com/avito-tech/go-transaction-manager/drivers/gorm/v2"
 	"gorm.io/gorm"
 )
 
 type refreshTokenRepository struct {
-	db *gorm.DB
+	db       *gorm.DB
+	txGetter *trmgorm.CtxGetter
 }
 
-func NewRefreshTokenRepository(db *gorm.DB) services.RefreshTokenRepository {
+func NewRefreshTokenRepository(
+	db *gorm.DB,
+	txGetter *trmgorm.CtxGetter,
+) services.RefreshTokenRepository {
 	return &refreshTokenRepository{
-		db: db,
+		db:       db,
+		txGetter: txGetter,
 	}
 }
 
@@ -28,7 +34,11 @@ func (r *refreshTokenRepository) Create(
 
 	model := models.RefreshTokenFromEntity(refreshToken)
 
-	err := r.db.WithContext(ctx).Preload("User").Create(model).Error
+	err := r.txGetter.
+		DefaultTrOrDB(ctx, r.db).
+		Preload("User").
+		Create(model).Error
+
 	if err != nil {
 		return database.MapGormErrors(err, "refresh token")
 	}
@@ -42,7 +52,8 @@ func (r *refreshTokenRepository) GetByToken(
 ) (*entities.RefreshToken, domainerrors.ErrDomain) {
 
 	refreshToken := &models.RefreshToken{}
-	err := r.db.WithContext(ctx).
+	err := r.txGetter.
+		DefaultTrOrDB(ctx, r.db).
 		Preload("User").
 		Where(&models.RefreshToken{Token: token}).
 		First(refreshToken).Error
@@ -60,7 +71,8 @@ func (r *refreshTokenRepository) GetByUserID(
 ) ([]*entities.RefreshToken, domainerrors.ErrDomain) {
 
 	refreshTokens := []*models.RefreshToken{}
-	err := r.db.WithContext(ctx).
+	err := r.txGetter.
+		DefaultTrOrDB(ctx, r.db).
 		Preload("User").
 		Where(&models.RefreshToken{UserID: id}).
 		Find(&refreshTokens).Error
@@ -82,7 +94,7 @@ func (r *refreshTokenRepository) Delete(
 ) domainerrors.ErrDomain {
 
 	model := models.RefreshTokenFromEntity(refreshToken)
-	err := r.db.WithContext(ctx).Delete(model).Error
+	err := r.txGetter.DefaultTrOrDB(ctx, r.db).Delete(model).Error
 	if err != nil {
 		return database.MapGormErrors(err, "refresh token")
 	}
@@ -94,7 +106,8 @@ func (r *refreshTokenRepository) DeleteByUserID(
 	userID uint,
 ) domainerrors.ErrDomain {
 
-	err := r.db.WithContext(ctx).
+	err := r.txGetter.
+		DefaultTrOrDB(ctx, r.db).
 		Where(&models.RefreshToken{UserID: userID}).
 		Delete(&models.RefreshToken{}).
 		Error
@@ -110,7 +123,8 @@ func (r *refreshTokenRepository) DeleteExpired(
 	ctx context.Context,
 ) domainerrors.ErrDomain {
 
-	err := r.db.WithContext(ctx).
+	err := r.txGetter.
+		DefaultTrOrDB(ctx, r.db).
 		Where("created_at + interval '1 second' * ttlsec < now()").
 		Delete(&models.RefreshToken{}).
 		Error

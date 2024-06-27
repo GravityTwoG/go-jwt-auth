@@ -28,12 +28,12 @@ func RefreshTokenFromEntity(refreshToken *entities.RefreshToken) *RefreshToken {
 	}
 
 	return &RefreshToken{
-		ID: refreshToken.GetId(),
+		ID: refreshToken.GetID(),
 
 		Token:  refreshToken.GetToken(),
-		TTLsec: refreshToken.GetTtlSec(),
+		TTLsec: refreshToken.GetTTLSec(),
 
-		UserID: refreshToken.GetUserId(),
+		UserID: refreshToken.GetUserID(),
 		User:   user,
 
 		IP:        refreshToken.GetIP(),

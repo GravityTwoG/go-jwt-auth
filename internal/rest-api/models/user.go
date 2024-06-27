@@ -17,7 +17,7 @@ type User struct {
 
 func UserFromEntity(user *entities.User) *User {
 	return &User{
-		ID:       user.GetId(),
+		ID:       user.GetID(),
 		Email:    user.GetEmail(),
 		Password: user.GetPassword(),
 	}

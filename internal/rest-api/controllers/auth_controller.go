@@ -180,8 +180,11 @@ func (ac *authController) refreshTokens(c *gin.Context) {
 	tokens, derr := ac.authService.RefreshTokens(c, dto)
 	if derr != nil {
 		isExpired := derr.Code() == services.RefreshTokenExpired
+		invalidUserAgent := derr.Code() == services.InvalidUserAgent
+		invalidToken := derr.Code() == services.InvalidRefreshToken
 		notFound := derr.Code() == domainerrors.EntityNotFound
-		if isExpired || notFound {
+
+		if isExpired || notFound || invalidUserAgent || invalidToken {
 			resetCookie(c, cookieName, ac.domain, ac.path)
 		}
 
@@ -323,7 +326,7 @@ func setRefreshTokenCookie(
 ) {
 	c.SetCookie(
 		cookieName, refreshToken.GetToken(),
-		refreshToken.GetTtlSec(), path, domain, true, true,
+		refreshToken.GetTTLSec(), path, domain, true, true,
 	)
 }
 
