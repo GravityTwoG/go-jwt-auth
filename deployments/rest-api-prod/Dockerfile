@@ -11,6 +11,8 @@ RUN go mod download
 # Copy the rest of the application code
 COPY . .
 
+RUN env GOOS=linux GOARCH=amd64 go build -o migrate ./cmd/migrate/main.go
+
 # Build the Go application
 RUN env GOOS=linux GOARCH=amd64 go build -o go-jwt-auth ./cmd/rest-api/main.go
 
@@ -25,10 +27,11 @@ RUN apk --no-cache add ca-certificates
 WORKDIR /app/
 
 # Copy the Go binary from the build stage
+COPY --from=build /app/migrate ./migrate
 COPY --from=build /app/go-jwt-auth ./go-jwt-auth
 
 # Expose the application's port
 EXPOSE 8080
 
 # Command to run the Go application
-CMD ["./go-jwt-auth"]
+CMD ["./migrate && ./go-jwt-auth"]
