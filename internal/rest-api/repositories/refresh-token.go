@@ -46,6 +46,22 @@ func (r *refreshTokenRepository) Create(
 	return nil
 }
 
+func (r *refreshTokenRepository) Update(
+	ctx context.Context,
+	refreshToken *entities.RefreshToken,
+) domainerrors.ErrDomain {
+	model := models.RefreshTokenFromEntity(refreshToken)
+
+	err := r.txGetter.
+		DefaultTrOrDB(ctx, r.db).
+		Save(model).Error
+	if err != nil {
+		return database.MapGormErrors(err, "refresh token")
+	}
+	*refreshToken = *models.RefreshTokenFromModel(model)
+	return nil
+}
+
 func (r *refreshTokenRepository) GetByToken(
 	ctx context.Context,
 	token string,

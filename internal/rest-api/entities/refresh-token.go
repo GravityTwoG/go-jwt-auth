@@ -74,6 +74,10 @@ func (rt *RefreshToken) GetToken() string {
 	return rt.token
 }
 
+func (rt *RefreshToken) SetToken(token string) {
+	rt.token = token
+}
+
 func (rt *RefreshToken) GetTTLSec() int {
 	return rt.ttlSec
 }
@@ -100,11 +104,4 @@ func (rt *RefreshToken) GetCreatedAt() time.Time {
 
 func (rt *RefreshToken) GetUpdatedAt() time.Time {
 	return rt.updatedAt
-}
-
-func (rt *RefreshToken) Expired() bool {
-	expirationTime := rt.createdAt.
-		Add(time.Duration(rt.ttlSec) * time.Second)
-
-	return time.Now().After(expirationTime)
 }

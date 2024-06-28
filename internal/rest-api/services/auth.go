@@ -32,6 +32,11 @@ type RefreshTokenRepository interface {
 		refreshToken *entities.RefreshToken,
 	) domainerrors.ErrDomain
 
+	Update(
+		ctx context.Context,
+		refreshToken *entities.RefreshToken,
+	) domainerrors.ErrDomain
+
 	GetByToken(
 		ctx context.Context,
 		token string,
@@ -209,8 +214,7 @@ func (s *authService) RefreshTokens(
 	var domainError domainerrors.ErrDomain = nil
 
 	s.trManager.Do(ctx, func(ctx context.Context) error {
-		// TODO: need exclusive lock here or another isolation level
-		oldRefreshToken, err := s.refreshTokenRepository.
+		refreshTokenEntity, err := s.refreshTokenRepository.
 			GetByToken(ctx, dto.OldToken)
 
 		// Token with valid signature and expiration provided,
@@ -233,7 +237,7 @@ func (s *authService) RefreshTokens(
 			return domainError
 		}
 
-		if oldRefreshToken.GetUserAgent() != dto.UserAgent {
+		if refreshTokenEntity.GetUserAgent() != dto.UserAgent {
 			s.refreshTokenRepository.DeleteByUserID(
 				ctx,
 				tokenClaims.ID,
@@ -246,24 +250,9 @@ func (s *authService) RefreshTokens(
 			return domainError
 		}
 
-		if oldRefreshToken.Expired() {
-			domainError = domainerrors.NewErrInvalidInput(
-				RefreshTokenExpired,
-				"refresh token expired",
-			)
-			return domainError
-		}
-
-		// delete old refresh token
-		err = s.refreshTokenRepository.Delete(ctx, oldRefreshToken)
-		if err != nil {
-			domainError = err
-			return domainError
-		}
-
 		// create new access token
 		accessToken, err := newJWT(
-			oldRefreshToken.GetUser(),
+			refreshTokenEntity.GetUser(),
 			s.accessTokenTTLsec,
 			s.jwtSecretKey,
 		)
@@ -274,7 +263,7 @@ func (s *authService) RefreshTokens(
 
 		// create new refresh token
 		newRefreshToken, err := newJWT(
-			oldRefreshToken.GetUser(),
+			refreshTokenEntity.GetUser(),
 			s.refreshTokenTTLsec,
 			s.jwtSecretKey,
 		)
@@ -283,14 +272,8 @@ func (s *authService) RefreshTokens(
 			return domainError
 		}
 
-		newRefreshTokenEntity := entities.NewRefreshToken(
-			newRefreshToken,
-			oldRefreshToken.GetUserID(),
-			s.refreshTokenTTLsec,
-			dto.IP,
-			dto.UserAgent,
-		)
-		err = s.refreshTokenRepository.Create(ctx, newRefreshTokenEntity)
+		refreshTokenEntity.SetToken(newRefreshToken)
+		err = s.refreshTokenRepository.Update(ctx, refreshTokenEntity)
 		if err != nil {
 			domainError = err
 			return domainError
@@ -298,7 +281,7 @@ func (s *authService) RefreshTokens(
 
 		tokens = &Tokens{
 			AccessToken:  accessToken,
-			RefreshToken: *newRefreshTokenEntity,
+			RefreshToken: *refreshTokenEntity,
 		}
 		return nil
 	})

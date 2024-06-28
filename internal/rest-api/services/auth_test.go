@@ -17,7 +17,10 @@ type mockUserService struct {
 	mock.Mock
 }
 
-func (m *mockUserService) Register(ctx context.Context, dto *dto.RegisterDTO) (*entities.User, domainerrors.ErrDomain) {
+func (m *mockUserService) Register(
+	ctx context.Context,
+	dto *dto.RegisterDTO,
+) (*entities.User, domainerrors.ErrDomain) {
 	args := m.Called(ctx, dto)
 
 	user := args.Get(0)
@@ -29,7 +32,10 @@ func (m *mockUserService) Register(ctx context.Context, dto *dto.RegisterDTO) (*
 	return user.(*entities.User), nil
 }
 
-func (m *mockUserService) Login(ctx context.Context, dto *dto.LoginDTO) (*entities.User, domainerrors.ErrDomain) {
+func (m *mockUserService) Login(
+	ctx context.Context,
+	dto *dto.LoginDTO,
+) (*entities.User, domainerrors.ErrDomain) {
 	args := m.Called(ctx, dto)
 
 	user := args.Get(0)
@@ -41,7 +47,10 @@ func (m *mockUserService) Login(ctx context.Context, dto *dto.LoginDTO) (*entiti
 	return user.(*entities.User), nil
 }
 
-func (m *mockUserService) GetByID(ctx context.Context, id uint) (*entities.User, domainerrors.ErrDomain) {
+func (m *mockUserService) GetByID(
+	ctx context.Context,
+	id uint,
+) (*entities.User, domainerrors.ErrDomain) {
 	args := m.Called(ctx, id)
 
 	user := args.Get(0)
@@ -53,7 +62,10 @@ func (m *mockUserService) GetByID(ctx context.Context, id uint) (*entities.User,
 	return user.(*entities.User), nil
 }
 
-func (m *mockUserService) GetByEmail(ctx context.Context, email string) (*entities.User, domainerrors.ErrDomain) {
+func (m *mockUserService) GetByEmail(
+	ctx context.Context,
+	email string,
+) (*entities.User, domainerrors.ErrDomain) {
 	args := m.Called(ctx, email)
 
 	user := args.Get(0)
@@ -69,7 +81,10 @@ type mockRefreshTokenRepository struct {
 	mock.Mock
 }
 
-func (m *mockRefreshTokenRepository) Create(ctx context.Context, refreshToken *entities.RefreshToken) domainerrors.ErrDomain {
+func (m *mockRefreshTokenRepository) Create(
+	ctx context.Context,
+	refreshToken *entities.RefreshToken,
+) domainerrors.ErrDomain {
 	args := m.Called(ctx, refreshToken)
 
 	err := args.Error(0)
@@ -80,7 +95,24 @@ func (m *mockRefreshTokenRepository) Create(ctx context.Context, refreshToken *e
 	return nil
 }
 
-func (m *mockRefreshTokenRepository) GetByToken(ctx context.Context, token string) (*entities.RefreshToken, domainerrors.ErrDomain) {
+func (m *mockRefreshTokenRepository) Update(
+	ctx context.Context,
+	refreshToken *entities.RefreshToken,
+) domainerrors.ErrDomain {
+	args := m.Called(ctx, refreshToken)
+
+	err := args.Error(0)
+	if err != nil {
+		return err.(domainerrors.ErrDomain)
+	}
+
+	return nil
+}
+
+func (m *mockRefreshTokenRepository) GetByToken(
+	ctx context.Context,
+	token string,
+) (*entities.RefreshToken, domainerrors.ErrDomain) {
 	args := m.Called(ctx, token)
 
 	refreshToken := args.Get(0)
@@ -92,7 +124,10 @@ func (m *mockRefreshTokenRepository) GetByToken(ctx context.Context, token strin
 	return refreshToken.(*entities.RefreshToken), nil
 }
 
-func (m *mockRefreshTokenRepository) GetByUserID(ctx context.Context, id uint) ([]*entities.RefreshToken, domainerrors.ErrDomain) {
+func (m *mockRefreshTokenRepository) GetByUserID(
+	ctx context.Context,
+	id uint,
+) ([]*entities.RefreshToken, domainerrors.ErrDomain) {
 	args := m.Called(ctx, id)
 
 	refreshTokens := args.Get(0)
@@ -104,7 +139,10 @@ func (m *mockRefreshTokenRepository) GetByUserID(ctx context.Context, id uint) (
 	return refreshTokens.([]*entities.RefreshToken), nil
 }
 
-func (m *mockRefreshTokenRepository) Delete(ctx context.Context, refreshToken *entities.RefreshToken) domainerrors.ErrDomain {
+func (m *mockRefreshTokenRepository) Delete(
+	ctx context.Context,
+	refreshToken *entities.RefreshToken,
+) domainerrors.ErrDomain {
 	args := m.Called(ctx, refreshToken)
 
 	err := args.Error(0)
@@ -129,7 +167,9 @@ func (m *mockRefreshTokenRepository) DeleteByUserID(
 	return nil
 }
 
-func (m *mockRefreshTokenRepository) DeleteExpired(ctx context.Context) domainerrors.ErrDomain {
+func (m *mockRefreshTokenRepository) DeleteExpired(
+	ctx context.Context,
+) domainerrors.ErrDomain {
 	args := m.Called(ctx)
 
 	err := args.Error(0)
