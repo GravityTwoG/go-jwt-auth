@@ -217,92 +217,99 @@ func (s *authService) RefreshTokens(
 	var domainError domainerrors.ErrDomain = nil
 
 	s.trManager.Do(ctx, func(ctx context.Context) error {
-		refreshTokenEntity, err := s.refreshTokenRepository.
-			GetByToken(ctx, dto.OldToken)
 
-		// Token with valid signature and expiration provided,
-		// but this token doesn't exist in DB.
-		// Maybe was stolen and deleted by another person.
-		if err != nil && err.Kind() == domainerrors.EntityNotFound {
-			s.refreshTokenRepository.DeleteByUserID(
-				ctx,
-				tokenClaims.ID,
-			)
-
-			domainError = domainerrors.NewErrEntityNotFound(
-				"REFRESH_TOKEN_NOT_FOUND",
-				"refresh token not found. All refresh tokens were deleted",
-			)
-			return domainError
-		}
-		if err != nil {
-			domainError = err
-			return domainError
-		}
-
-		if refreshTokenEntity.GetUserAgent() != dto.UserAgent {
-			s.refreshTokenRepository.DeleteByUserID(
-				ctx,
-				tokenClaims.ID,
-			)
-
-			domainError = domainerrors.NewErrEntityNotFound(
-				InvalidUserAgent,
-				"invalid user agent. All refresh tokens were deleted",
-			)
-			return domainError
-		}
-
-		if refreshTokenEntity.GetFingerPrint() != dto.FingerPrint {
-			s.refreshTokenRepository.DeleteByUserID(
-				ctx,
-				tokenClaims.ID,
-			)
-
-			domainError = domainerrors.NewErrEntityNotFound(
-				InvalidFingerPrint,
-				"invalid finger print. All refresh tokens were deleted",
-			)
-			return domainError
-		}
-
-		// create new access token
-		accessToken, err := newJWT(
-			refreshTokenEntity.GetUser(),
-			s.accessTokenTTLsec,
-			s.jwtSecretKey,
+		tokens, domainError = s.refreshTokens(
+			ctx,
+			dto,
+			tokenClaims.ID,
 		)
-		if err != nil {
-			domainError = err
-			return domainError
-		}
 
-		// create new refresh token
-		newRefreshToken, err := newJWT(
-			refreshTokenEntity.GetUser(),
-			s.refreshTokenTTLsec,
-			s.jwtSecretKey,
-		)
-		if err != nil {
-			domainError = err
-			return domainError
-		}
-
-		refreshTokenEntity.SetToken(newRefreshToken)
-		err = s.refreshTokenRepository.Update(ctx, refreshTokenEntity)
-		if err != nil {
-			domainError = err
-			return domainError
-		}
-
-		tokens = &Tokens{
-			AccessToken:  accessToken,
-			RefreshToken: *refreshTokenEntity,
-		}
-		return nil
+		return domainError
 	})
 
 	return tokens, domainError
+}
+
+func (s *authService) refreshTokens(
+	ctx context.Context,
+	dto *RefreshTokensDTO,
+	userID uint,
+) (*Tokens, domainerrors.ErrDomain) {
+	refreshTokenEntity, err := s.refreshTokenRepository.
+		GetByToken(ctx, dto.OldToken)
+
+	// Token with valid signature and expiration provided,
+	// but this token doesn't exist in DB.
+	// Maybe was stolen and deleted by another person.
+	if err != nil && err.Kind() == domainerrors.EntityNotFound {
+		s.refreshTokenRepository.DeleteByUserID(
+			ctx,
+			userID,
+		)
+
+		return nil, domainerrors.NewErrEntityNotFound(
+			"REFRESH_TOKEN_NOT_FOUND",
+			"refresh token not found. All refresh tokens were deleted",
+		)
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	if refreshTokenEntity.GetUserAgent() != dto.UserAgent {
+		s.refreshTokenRepository.DeleteByUserID(
+			ctx,
+			userID,
+		)
+
+		return nil, domainerrors.NewErrEntityNotFound(
+			InvalidUserAgent,
+			"invalid user agent. All refresh tokens were deleted",
+		)
+	}
+
+	if refreshTokenEntity.GetFingerPrint() != dto.FingerPrint {
+		s.refreshTokenRepository.DeleteByUserID(
+			ctx,
+			userID,
+		)
+
+		return nil, domainerrors.NewErrEntityNotFound(
+			InvalidFingerPrint,
+			"invalid finger print. All refresh tokens were deleted",
+		)
+	}
+
+	// create new access token
+	accessToken, err := newJWT(
+		refreshTokenEntity.GetUser(),
+		s.accessTokenTTLsec,
+		s.jwtSecretKey,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	// create new refresh token
+	newRefreshToken, err := newJWT(
+		refreshTokenEntity.GetUser(),
+		s.refreshTokenTTLsec,
+		s.jwtSecretKey,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	refreshTokenEntity.SetToken(newRefreshToken)
+	err = s.refreshTokenRepository.Update(ctx, refreshTokenEntity)
+	if err != nil {
+		return nil, err
+	}
+
+	return &Tokens{
+		AccessToken:  accessToken,
+		RefreshToken: *refreshTokenEntity,
+	}, nil
 }
 
 func (s *authService) GetUserByID(
@@ -338,26 +345,36 @@ func (s *authService) Logout(
 	var domainError domainerrors.ErrDomain = nil
 
 	s.trManager.Do(ctx, func(ctx context.Context) error {
-		existingRefreshToken, err := s.refreshTokenRepository.
-			GetByToken(ctx, refreshToken)
-		if err != nil {
-			domainError = err
-			return domainError
-		}
 
-		if existingRefreshToken.GetUserAgent() != userAgent {
-			domainError = domainerrors.NewErrInvalidInput(
-				InvalidUserAgent,
-				"invalid user agent",
-			)
-			return domainError
-		}
+		domainError = s.logout(ctx, refreshToken, userAgent)
 
-		domainError = s.refreshTokenRepository.Delete(ctx, existingRefreshToken)
 		return domainError
 	})
 
 	return domainError
+}
+
+func (s *authService) logout(
+	ctx context.Context,
+	refreshToken string,
+	userAgent string,
+) domainerrors.ErrDomain {
+
+	existingRefreshToken, err := s.refreshTokenRepository.
+		GetByToken(ctx, refreshToken)
+	if err != nil {
+		return err
+	}
+
+	if existingRefreshToken.GetUserAgent() != userAgent {
+		return domainerrors.NewErrInvalidInput(
+			InvalidUserAgent,
+			"invalid user agent",
+		)
+	}
+
+	return s.refreshTokenRepository.
+		Delete(ctx, existingRefreshToken)
 }
 
 func (s *authService) LogoutAll(
@@ -369,30 +386,38 @@ func (s *authService) LogoutAll(
 
 	s.trManager.Do(ctx, func(ctx context.Context) error {
 
-		existingRefreshToken, err := s.refreshTokenRepository.
-			GetByToken(ctx, refreshToken)
+		domainError = s.logoutAll(ctx, refreshToken, userAgent)
 
-		if err != nil {
-			domainError = err
-			return domainError
-		}
-
-		if existingRefreshToken.GetUserAgent() != userAgent {
-			domainError = domainerrors.NewErrInvalidInput(
-				InvalidUserAgent,
-				"invalid user agent",
-			)
-			return domainError
-		}
-
-		domainError = s.refreshTokenRepository.DeleteByUserID(
-			ctx,
-			existingRefreshToken.GetUserID(),
-		)
 		return domainError
 	})
 
 	return domainError
+}
+
+func (s *authService) logoutAll(
+	ctx context.Context,
+	refreshToken string,
+	userAgent string,
+) domainerrors.ErrDomain {
+
+	existingRefreshToken, err := s.refreshTokenRepository.
+		GetByToken(ctx, refreshToken)
+
+	if err != nil {
+		return err
+	}
+
+	if existingRefreshToken.GetUserAgent() != userAgent {
+		return domainerrors.NewErrInvalidInput(
+			InvalidUserAgent,
+			"invalid user agent",
+		)
+	}
+
+	return s.refreshTokenRepository.DeleteByUserID(
+		ctx,
+		existingRefreshToken.GetUserID(),
+	)
 }
 
 func (s *authService) RunScheduledTasks(ctx context.Context) {
