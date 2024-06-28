@@ -43,6 +43,13 @@ func main() {
 	}
 
 	// future migrations
+	if !db.Migrator().HasColumn(&models.RefreshToken{}, "finger_print") {
+		log.Println("Adding finger print column to refresh tokens table")
+		err = db.Migrator().AddColumn(&models.RefreshToken{}, "finger_print")
+		if err != nil {
+			log.Fatal(err)
+		}
+	}
 
 	log.Println("Migrations complete")
 }

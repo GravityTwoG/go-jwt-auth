@@ -14,6 +14,7 @@ import (
 const InvalidRefreshToken = "INVALID_REFRESH_TOKEN"
 const RefreshTokenExpired = "REFRESH_TOKEN_EXPIRED"
 const InvalidUserAgent = "INVALID_USER_AGENT"
+const InvalidFingerPrint = "INVALID_FINGER_PRINT"
 
 type Tokens struct {
 	AccessToken  string
@@ -21,9 +22,10 @@ type Tokens struct {
 }
 
 type RefreshTokensDTO struct {
-	OldToken  string
-	IP        string
-	UserAgent string
+	OldToken    string
+	IP          string
+	UserAgent   string
+	FingerPrint string
 }
 
 type RefreshTokenRepository interface {
@@ -184,6 +186,7 @@ func (s *authService) Login(
 		s.refreshTokenTTLsec,
 		ip,
 		userAgent,
+		loginDTO.FingerPrint,
 	)
 
 	err = s.refreshTokenRepository.Create(ctx, refreshTokenEntity)
@@ -246,6 +249,19 @@ func (s *authService) RefreshTokens(
 			domainError = domainerrors.NewErrEntityNotFound(
 				InvalidUserAgent,
 				"invalid user agent. All refresh tokens were deleted",
+			)
+			return domainError
+		}
+
+		if refreshTokenEntity.GetFingerPrint() != dto.FingerPrint {
+			s.refreshTokenRepository.DeleteByUserID(
+				ctx,
+				tokenClaims.ID,
+			)
+
+			domainError = domainerrors.NewErrEntityNotFound(
+				InvalidFingerPrint,
+				"invalid finger print. All refresh tokens were deleted",
 			)
 			return domainError
 		}

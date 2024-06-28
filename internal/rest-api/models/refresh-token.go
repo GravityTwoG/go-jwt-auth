@@ -14,8 +14,9 @@ type RefreshToken struct {
 	UserID uint `gorm:"not null"`
 	User   User `gorm:"onDelete:CASCADE"`
 
-	IP        string
-	UserAgent string
+	IP          string `gorm:"not null"`
+	UserAgent   string `gorm:"not null"`
+	FingerPrint string `gorm:"not null;default:''"`
 
 	CreatedAt time.Time
 	UpdatedAt time.Time
@@ -36,8 +37,9 @@ func RefreshTokenFromEntity(refreshToken *entities.RefreshToken) *RefreshToken {
 		UserID: refreshToken.GetUserID(),
 		User:   user,
 
-		IP:        refreshToken.GetIP(),
-		UserAgent: refreshToken.GetUserAgent(),
+		IP:          refreshToken.GetIP(),
+		UserAgent:   refreshToken.GetUserAgent(),
+		FingerPrint: refreshToken.GetFingerPrint(),
 
 		CreatedAt: refreshToken.GetCreatedAt(),
 		UpdatedAt: refreshToken.GetUpdatedAt(),
@@ -60,6 +62,7 @@ func RefreshTokenFromModel(refreshTokenModel *RefreshToken) *entities.RefreshTok
 
 		refreshTokenModel.IP,
 		refreshTokenModel.UserAgent,
+		refreshTokenModel.FingerPrint,
 
 		refreshTokenModel.CreatedAt,
 		refreshTokenModel.UpdatedAt,

@@ -13,13 +13,13 @@ func MapGormErrors(err error, entity string) domainerrors.ErrDomain {
 	case gorm.ErrRecordNotFound:
 		return domainerrors.NewErrEntityNotFound(
 			fmt.Sprintf("%s_NOT_FOUND", strings.ToUpper(entity)),
-			entity,
+			fmt.Sprintf("entity %s not found", entity),
 		)
 
 	case gorm.ErrDuplicatedKey:
 		return domainerrors.NewErrEntityAlreadyExists(
 			fmt.Sprintf("%s_ALREADY_EXISTS", strings.ToUpper(entity)),
-			entity,
+			fmt.Sprintf("entity %s already exists", entity),
 		)
 
 	case gorm.ErrInvalidValue:

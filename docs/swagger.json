@@ -184,6 +184,9 @@
                     }
                 ],
                 "description": "Refresh tokens, also sets new refresh token in cookie",
+                "consumes": [
+                    "application/json"
+                ],
                 "produces": [
                     "application/json"
                 ],
@@ -191,6 +194,17 @@
                     "Auth"
                 ],
                 "summary": "Refresh tokens",
+                "parameters": [
+                    {
+                        "description": "RefreshTokensDTO",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.RefreshTokensDTO"
+                        }
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -310,13 +324,28 @@
             "type": "object",
             "required": [
                 "email",
+                "fingerPrint",
                 "password"
             ],
             "properties": {
                 "email": {
                     "type": "string"
                 },
+                "fingerPrint": {
+                    "type": "string"
+                },
                 "password": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.RefreshTokensDTO": {
+            "type": "object",
+            "required": [
+                "fingerPrint"
+            ],
+            "properties": {
+                "fingerPrint": {
                     "type": "string"
                 }
             }
@@ -347,6 +376,9 @@
                     "type": "string"
                 },
                 "ip": {
+                    "type": "string"
+                },
+                "updatedAt": {
                     "type": "string"
                 },
                 "userAgent": {

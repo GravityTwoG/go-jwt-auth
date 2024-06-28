@@ -9,6 +9,7 @@ type SessionDTO struct {
 	IP        string    `json:"ip"`
 	UserAgent string    `json:"userAgent"`
 	CreatedAt time.Time `json:"createdAt"`
+	UpdatedAt time.Time `json:"updatedAt"`
 }
 
 type SessionsDTO struct {
@@ -25,6 +26,7 @@ func SessionsDTOFromEntities(sessions []*entities.RefreshToken) *SessionsDTO {
 			IP:        session.GetIP(),
 			UserAgent: session.GetUserAgent(),
 			CreatedAt: session.GetCreatedAt(),
+			UpdatedAt: session.GetUpdatedAt(),
 		})
 	}
 

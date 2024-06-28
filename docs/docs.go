@@ -190,6 +190,9 @@ const docTemplate = `{
                     }
                 ],
                 "description": "Refresh tokens, also sets new refresh token in cookie",
+                "consumes": [
+                    "application/json"
+                ],
                 "produces": [
                     "application/json"
                 ],
@@ -197,6 +200,17 @@ const docTemplate = `{
                     "Auth"
                 ],
                 "summary": "Refresh tokens",
+                "parameters": [
+                    {
+                        "description": "RefreshTokensDTO",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.RefreshTokensDTO"
+                        }
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -316,13 +330,28 @@ const docTemplate = `{
             "type": "object",
             "required": [
                 "email",
+                "fingerPrint",
                 "password"
             ],
             "properties": {
                 "email": {
                     "type": "string"
                 },
+                "fingerPrint": {
+                    "type": "string"
+                },
                 "password": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.RefreshTokensDTO": {
+            "type": "object",
+            "required": [
+                "fingerPrint"
+            ],
+            "properties": {
+                "fingerPrint": {
                     "type": "string"
                 }
             }
@@ -353,6 +382,9 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "ip": {
+                    "type": "string"
+                },
+                "updatedAt": {
                     "type": "string"
                 },
                 "userAgent": {

@@ -156,11 +156,21 @@ func (ac *authController) login(c *gin.Context) {
 // @Summary	Refresh tokens
 // @Description Refresh tokens, also sets new refresh token in cookie
 // @Security	ApiKeyAuth
+// @Accept		json
 // @Produce	json
+// @Param		body	body		dto.RefreshTokensDTO	true	"RefreshTokensDTO"
 // @Success	200	{object}	RefreshTokensResponseDTO
 // @Failure	401	{object}	ErrorResponseDTO
 // @Router		/auth/refresh-tokens [post]
 func (ac *authController) refreshTokens(c *gin.Context) {
+	dto, err := ginutils.DecodeJSON[*dto.RefreshTokensDTO](c)
+	if err != nil {
+		writeError(c, domainerrors.NewErrInvalidInput(
+			"INVALID_BODY",
+			err.Error(),
+		))
+		return
+	}
 
 	refreshToken, err := c.Cookie(cookieName)
 	if err != nil {
@@ -172,19 +182,22 @@ func (ac *authController) refreshTokens(c *gin.Context) {
 		return
 	}
 
-	dto := &services.RefreshTokensDTO{
-		OldToken:  refreshToken,
-		IP:        c.ClientIP(),
-		UserAgent: c.GetHeader("User-Agent"),
+	refreshTokensDTO := &services.RefreshTokensDTO{
+		OldToken:    refreshToken,
+		IP:          c.ClientIP(),
+		UserAgent:   c.GetHeader("User-Agent"),
+		FingerPrint: dto.FingerPrint,
 	}
-	tokens, derr := ac.authService.RefreshTokens(c, dto)
+	tokens, derr := ac.authService.RefreshTokens(c, refreshTokensDTO)
 	if derr != nil {
-		isExpired := derr.Code() == services.RefreshTokenExpired
-		invalidUserAgent := derr.Code() == services.InvalidUserAgent
-		invalidToken := derr.Code() == services.InvalidRefreshToken
-		notFound := derr.Code() == domainerrors.EntityNotFound
 
-		if isExpired || notFound || invalidUserAgent || invalidToken {
+		switch derr.Code() {
+		case services.InvalidRefreshToken,
+			services.RefreshTokenExpired,
+			domainerrors.EntityNotFound,
+			services.InvalidUserAgent,
+			services.InvalidFingerPrint:
+
 			resetCookie(c, cookieName, ac.domain, ac.path)
 		}
 

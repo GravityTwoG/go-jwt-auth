@@ -13,8 +13,9 @@ type RefreshToken struct {
 	userId uint
 	user   *User
 
-	ip        string
-	userAgent string
+	ip          string
+	userAgent   string
+	fingerPrint string
 
 	createdAt time.Time
 	updatedAt time.Time
@@ -26,6 +27,7 @@ func NewRefreshToken(
 	ttlSec int,
 	ip string,
 	userAgent string,
+	fingerPrint string,
 ) *RefreshToken {
 	return &RefreshToken{
 		token:  token,
@@ -35,6 +37,8 @@ func NewRefreshToken(
 
 		ip:        ip,
 		userAgent: userAgent,
+
+		fingerPrint: fingerPrint,
 	}
 }
 
@@ -46,6 +50,7 @@ func RefreshTokenFromDB(
 	user *User,
 	ip string,
 	userAgent string,
+	fingerPrint string,
 	createdAt time.Time,
 	updatedAt time.Time,
 ) *RefreshToken {
@@ -58,8 +63,9 @@ func RefreshTokenFromDB(
 		userId: userId,
 		user:   user,
 
-		ip:        ip,
-		userAgent: userAgent,
+		ip:          ip,
+		userAgent:   userAgent,
+		fingerPrint: fingerPrint,
 
 		createdAt: createdAt,
 		updatedAt: updatedAt,
@@ -96,6 +102,10 @@ func (rt *RefreshToken) GetIP() string {
 
 func (rt *RefreshToken) GetUserAgent() string {
 	return rt.userAgent
+}
+
+func (rt *RefreshToken) GetFingerPrint() string {
+	return rt.fingerPrint
 }
 
 func (rt *RefreshToken) GetCreatedAt() time.Time {

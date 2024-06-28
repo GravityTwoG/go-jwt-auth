@@ -20,6 +20,7 @@ func TestRefreshTokenFromEntity(t *testing.T) {
 			3600,
 			"127.0.0.1",
 			"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/89.0.142.86 Safari/537.36",
+			"",
 		)
 
 		expectedModel := &models.RefreshToken{
@@ -60,6 +61,7 @@ func TestRefreshTokenFromEntity(t *testing.T) {
 
 			"127.0.0.1",
 			"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/89.0.142.86 Safari/537.36",
+			"",
 
 			time.Time{},
 			time.Time{},

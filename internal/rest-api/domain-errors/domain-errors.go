@@ -49,19 +49,19 @@ func (e *errDomain) Unwrap() error {
 	return e.err
 }
 
-func NewErrEntityNotFound(code string, entity string) ErrDomain {
+func NewErrEntityNotFound(code string, err string) ErrDomain {
 	return newErr(
 		EntityNotFound,
 		code,
-		fmt.Errorf("entity %s not found", entity),
+		fmt.Errorf(err),
 	)
 }
 
-func NewErrEntityAlreadyExists(code string, entity string) ErrDomain {
+func NewErrEntityAlreadyExists(code string, err string) ErrDomain {
 	return newErr(
 		EntityAlreadyExists,
 		code,
-		fmt.Errorf("entity %s already exists", entity),
+		fmt.Errorf(err),
 	)
 }
 
