@@ -96,9 +96,12 @@ func (r *refreshTokenRepository) GetByUserID(
 		return nil, database.MapGormErrors(err, "refresh token")
 	}
 
-	entities := make([]*entities.RefreshToken, len(refreshTokens))
+	entities := make([]*entities.RefreshToken, 0, len(refreshTokens))
 	for i := 0; i < len(refreshTokens); i++ {
-		entities[i] = models.RefreshTokenFromModel(refreshTokens[i])
+		entities = append(
+			entities,
+			models.RefreshTokenFromModel(refreshTokens[i]),
+		)
 	}
 
 	return entities, nil

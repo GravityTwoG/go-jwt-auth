@@ -18,7 +18,7 @@ type SessionsDTO struct {
 
 func SessionsDTOFromEntities(sessions []*entities.RefreshToken) *SessionsDTO {
 	dto := &SessionsDTO{
-		Sessions: make([]SessionDTO, 0),
+		Sessions: make([]SessionDTO, 0, len(sessions)),
 	}
 
 	for _, session := range sessions {
