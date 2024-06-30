@@ -361,7 +361,7 @@ func writeError(
 	switch {
 	case err.Kind() == domainerrors.EntityNotFound:
 		status = http.StatusNotFound
-	case err.Kind() == domainerrors.InvalidInput:
+	case err.Kind() == domainerrors.EntityAlreadyExists:
 		status = http.StatusConflict
 	case err.Kind() == domainerrors.InvalidInput:
 		status = http.StatusBadRequest
