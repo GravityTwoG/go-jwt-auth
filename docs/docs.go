@@ -92,19 +92,19 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/controllers.LoginResponseDTO"
+                            "$ref": "#/definitions/dto.LoginResponseDTO"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/controllers.ErrorResponseDTO"
+                            "$ref": "#/definitions/dto.ErrorResponseDTO"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/controllers.ErrorResponseDTO"
+                            "$ref": "#/definitions/dto.ErrorResponseDTO"
                         }
                     }
                 }
@@ -128,7 +128,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/controllers.CommonResponseDTO"
+                            "$ref": "#/definitions/dto.CommonResponseDTO"
                         }
                     }
                 }
@@ -152,7 +152,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/controllers.CommonResponseDTO"
+                            "$ref": "#/definitions/dto.CommonResponseDTO"
                         }
                     }
                 }
@@ -215,13 +215,13 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/controllers.RefreshTokensResponseDTO"
+                            "$ref": "#/definitions/dto.RefreshTokensResponseDTO"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/controllers.ErrorResponseDTO"
+                            "$ref": "#/definitions/dto.ErrorResponseDTO"
                         }
                     }
                 }
@@ -260,7 +260,7 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/controllers.ErrorResponseDTO"
+                            "$ref": "#/definitions/dto.ErrorResponseDTO"
                         }
                     }
                 }
@@ -268,49 +268,10 @@ const docTemplate = `{
         }
     },
     "definitions": {
-        "controllers.CommonResponseDTO": {
+        "dto.CommonResponseDTO": {
             "type": "object",
             "properties": {
                 "message": {
-                    "type": "string"
-                }
-            }
-        },
-        "controllers.ErrorResponseDTO": {
-            "type": "object",
-            "properties": {
-                "code": {
-                    "type": "string"
-                },
-                "error": {
-                    "type": "string"
-                },
-                "kind": {
-                    "type": "string"
-                }
-            }
-        },
-        "controllers.LoginResponseDTO": {
-            "type": "object",
-            "properties": {
-                "accessToken": {
-                    "type": "string"
-                },
-                "refreshToken": {
-                    "type": "string"
-                },
-                "user": {
-                    "$ref": "#/definitions/dto.UserDTO"
-                }
-            }
-        },
-        "controllers.RefreshTokensResponseDTO": {
-            "type": "object",
-            "properties": {
-                "accessToken": {
-                    "type": "string"
-                },
-                "refreshToken": {
                     "type": "string"
                 }
             }
@@ -323,6 +284,20 @@ const docTemplate = `{
                 },
                 "refreshTokenTTLsec": {
                     "type": "integer"
+                }
+            }
+        },
+        "dto.ErrorResponseDTO": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "string"
+                },
+                "error": {
+                    "type": "string"
+                },
+                "kind": {
+                    "type": "string"
                 }
             }
         },
@@ -345,6 +320,20 @@ const docTemplate = `{
                 }
             }
         },
+        "dto.LoginResponseDTO": {
+            "type": "object",
+            "properties": {
+                "accessToken": {
+                    "type": "string"
+                },
+                "refreshToken": {
+                    "type": "string"
+                },
+                "user": {
+                    "$ref": "#/definitions/dto.UserDTO"
+                }
+            }
+        },
         "dto.RefreshTokensDTO": {
             "type": "object",
             "required": [
@@ -352,6 +341,17 @@ const docTemplate = `{
             ],
             "properties": {
                 "fingerPrint": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.RefreshTokensResponseDTO": {
+            "type": "object",
+            "properties": {
+                "accessToken": {
+                    "type": "string"
+                },
+                "refreshToken": {
                     "type": "string"
                 }
             }

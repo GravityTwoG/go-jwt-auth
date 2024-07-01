@@ -5,3 +5,9 @@ type LoginDTO struct {
 	Password    string `json:"password" binding:"required"`
 	FingerPrint string `json:"fingerPrint" binding:"required"`
 }
+
+type LoginResponseDTO struct {
+	AccessToken  string  `json:"accessToken"`
+	RefreshToken string  `json:"refreshToken"`
+	User         UserDTO `json:"user"`
+}

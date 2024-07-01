@@ -1,33 +1,8 @@
 basePath: /
 definitions:
-  controllers.CommonResponseDTO:
+  dto.CommonResponseDTO:
     properties:
       message:
-        type: string
-    type: object
-  controllers.ErrorResponseDTO:
-    properties:
-      code:
-        type: string
-      error:
-        type: string
-      kind:
-        type: string
-    type: object
-  controllers.LoginResponseDTO:
-    properties:
-      accessToken:
-        type: string
-      refreshToken:
-        type: string
-      user:
-        $ref: '#/definitions/dto.UserDTO'
-    type: object
-  controllers.RefreshTokensResponseDTO:
-    properties:
-      accessToken:
-        type: string
-      refreshToken:
         type: string
     type: object
   dto.ConfigDTO:
@@ -36,6 +11,15 @@ definitions:
         type: integer
       refreshTokenTTLsec:
         type: integer
+    type: object
+  dto.ErrorResponseDTO:
+    properties:
+      code:
+        type: string
+      error:
+        type: string
+      kind:
+        type: string
     type: object
   dto.LoginDTO:
     properties:
@@ -50,12 +34,28 @@ definitions:
     - fingerPrint
     - password
     type: object
+  dto.LoginResponseDTO:
+    properties:
+      accessToken:
+        type: string
+      refreshToken:
+        type: string
+      user:
+        $ref: '#/definitions/dto.UserDTO'
+    type: object
   dto.RefreshTokensDTO:
     properties:
       fingerPrint:
         type: string
     required:
     - fingerPrint
+    type: object
+  dto.RefreshTokensResponseDTO:
+    properties:
+      accessToken:
+        type: string
+      refreshToken:
+        type: string
     type: object
   dto.RegisterDTO:
     properties:
@@ -151,15 +151,15 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/controllers.LoginResponseDTO'
+            $ref: '#/definitions/dto.LoginResponseDTO'
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/controllers.ErrorResponseDTO'
+            $ref: '#/definitions/dto.ErrorResponseDTO'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/controllers.ErrorResponseDTO'
+            $ref: '#/definitions/dto.ErrorResponseDTO'
       summary: Login user
       tags:
       - Auth
@@ -171,7 +171,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/controllers.CommonResponseDTO'
+            $ref: '#/definitions/dto.CommonResponseDTO'
       security:
       - ApiKeyAuth: []
       summary: Logout user
@@ -185,7 +185,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/controllers.CommonResponseDTO'
+            $ref: '#/definitions/dto.CommonResponseDTO'
       security:
       - ApiKeyAuth: []
       summary: Logout all sessions
@@ -223,11 +223,11 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/controllers.RefreshTokensResponseDTO'
+            $ref: '#/definitions/dto.RefreshTokensResponseDTO'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/controllers.ErrorResponseDTO'
+            $ref: '#/definitions/dto.ErrorResponseDTO'
       security:
       - ApiKeyAuth: []
       summary: Refresh tokens
@@ -254,7 +254,7 @@ paths:
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/controllers.ErrorResponseDTO'
+            $ref: '#/definitions/dto.ErrorResponseDTO'
       summary: Register new user
       tags:
       - Auth
