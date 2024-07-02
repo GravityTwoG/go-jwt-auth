@@ -37,6 +37,7 @@ import (
 // @securitydefinitions.apikey	ApiKeyAuth
 // @in							header
 // @name						Authorization
+// @description Type "Bearer" followed by a space and JWT token.
 func main() {
 	cfg := config.MustLoadConfig()
 
@@ -101,6 +102,9 @@ func main() {
 		htmlContent, err := scalar.ApiReferenceHTML(&scalar.Options{
 			SpecContent: swaggerSpec,
 			DarkMode:    true,
+			CustomOptions: scalar.CustomOptions{
+				PageTitle: "Go JWT Auth API",
+			},
 		})
 
 		if err != nil {
