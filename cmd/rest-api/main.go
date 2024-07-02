@@ -14,6 +14,7 @@ import (
 	"go-jwt-auth/internal/rest-api/repositories"
 	"go-jwt-auth/internal/rest-api/services"
 
+	"github.com/MarceloPetrucio/go-scalar-api-reference"
 	trmgorm "github.com/avito-tech/go-transaction-manager/drivers/gorm/v2"
 	"github.com/avito-tech/go-transaction-manager/trm/v2"
 	"github.com/avito-tech/go-transaction-manager/trm/v2/manager"
@@ -21,8 +22,6 @@ import (
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
-	swaggerFiles "github.com/swaggo/files"
-	ginSwagger "github.com/swaggo/gin-swagger"
 )
 
 // @title			Go JWT Auth API
@@ -34,7 +33,7 @@ import (
 // @contact.email	marsel.ave@gmail.com
 
 // @host						localhost:8080
-// @BasePath					/
+// @BasePath					/api
 // @securitydefinitions.apikey	ApiKeyAuth
 // @in							header
 // @name						Authorization
@@ -93,12 +92,25 @@ func main() {
 
 	go authService.RunScheduledTasks(ctxCancel)
 
-	// you must import docs for swagger to work
-	docs.SwaggerInfo.BasePath = "/"
-	r.GET("/swagger/*any", ginSwagger.WrapHandler(
-		swaggerFiles.Handler,
-	))
+	// Swagger docs
+	docs.SwaggerInfo.Host = cfg.Domain
+	// read swagger.json
+	swaggerSpec := docs.SwaggerInfo.ReadDoc()
 
+	r.GET("/swagger/*any", func(ctx *gin.Context) {
+		htmlContent, err := scalar.ApiReferenceHTML(&scalar.Options{
+			SpecContent: swaggerSpec,
+			DarkMode:    true,
+		})
+
+		if err != nil {
+			fmt.Printf("%v", err)
+		}
+
+		fmt.Fprintln(ctx.Writer, htmlContent)
+	})
+
+	// Start server
 	r.Run(fmt.Sprintf(":%s", cfg.Port))
 }
 

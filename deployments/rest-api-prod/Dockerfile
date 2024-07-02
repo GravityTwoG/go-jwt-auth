@@ -27,8 +27,9 @@ RUN apk --no-cache add ca-certificates
 WORKDIR /app/
 
 # Copy the Go binary from the build stage
-COPY --from=build /app/migrate ./migrate
-COPY --from=build /app/go-jwt-auth ./go-jwt-auth
+COPY --from=build /app/migrate ./cmd/migrate/migrate
+COPY --from=build /app/go-jwt-auth ./cmd/rest-api/go-jwt-auth
+COPY --from=build /app/docs/swagger.json ./docs/swagger.json
 COPY --from=build /app/deployments/rest-api-prod/startup.sh ./startup.sh
 
 RUN chmod +x ./startup.sh

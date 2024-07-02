@@ -2,11 +2,13 @@
 
 pwd
 ls -lh
-stat ./migrate
-stat ./go-jwt-auth
+stat ./cmd/migrate/migrate
+stat ./cmd/rest-api/go-jwt-auth
 
 echo "Starting migrations"
+cd /app/cmd/migrate
 ./migrate
 
 echo "Starting server"
+cd /app/cmd/rest-api
 ./go-jwt-auth
