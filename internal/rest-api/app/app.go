@@ -76,15 +76,14 @@ func Run() {
 		cfg.RefreshTokenTTLsec,
 	)
 
-	authController := controllers.NewAuthController(
+	api := r.Group("/api")
+	controllers.NewAuthController(
+		api,
 		authService,
 		cfg.JWTSecretKey,
 		cfg.Domain,
 		"/api/auth",
 	)
-
-	api := r.Group("/api")
-	authController.RegisterRoutes(api.Group("/auth"))
 
 	ctxCancel, cancel := context.WithCancel(ctx)
 	defer cancel()

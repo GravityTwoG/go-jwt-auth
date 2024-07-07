@@ -7,7 +7,7 @@ type UserDTO struct {
 	Email string `json:"email"`
 }
 
-func FromEntity(user *entities.User) *UserDTO {
+func UserFromEntity(user *entities.User) *UserDTO {
 	return &UserDTO{
 		ID:    user.GetID(),
 		Email: user.GetEmail(),

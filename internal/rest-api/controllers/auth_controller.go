@@ -29,21 +29,20 @@ type authController struct {
 }
 
 func NewAuthController(
+	r *gin.RouterGroup,
 	authService services.AuthService,
 	jwtSecretKey string,
 	domain string,
 	path string,
-) *authController {
-	return &authController{
+) {
+	ac := authController{
 		authService: authService,
 
 		jwtSecretKey: []byte(jwtSecretKey),
 		domain:       domain,
 		path:         path,
 	}
-}
 
-func (ac *authController) RegisterRoutes(r *gin.RouterGroup) {
 	anonMiddleware := middlewares.AnonymousMiddleware(ac.jwtSecretKey)
 	authMiddleware := middlewares.AuthMiddleware(ac.jwtSecretKey)
 
@@ -84,7 +83,7 @@ func (ac *authController) register(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusCreated, dto.FromEntity(user))
+	c.JSON(http.StatusCreated, dto.UserFromEntity(user))
 }
 
 // @Tags		Auth
@@ -127,7 +126,7 @@ func (ac *authController) login(c *gin.Context) {
 	c.JSON(http.StatusOK, &dto.LoginResponseDTO{
 		AccessToken:  tokens.AccessToken,
 		RefreshToken: tokens.RefreshToken.GetToken(),
-		User:         *dto.FromEntity(user),
+		User:         *dto.UserFromEntity(user),
 	})
 }
 
@@ -206,7 +205,7 @@ func (ac *authController) me(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, dto.FromEntity(user))
+	c.JSON(http.StatusOK, dto.UserFromEntity(user))
 }
 
 // @Tags		Auth
