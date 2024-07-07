@@ -4,23 +4,32 @@ import (
 	"go-jwt-auth/internal/rest-api/database"
 	"go-jwt-auth/internal/rest-api/models"
 	"log"
-	"os"
 
-	"github.com/joho/godotenv"
+	"github.com/ilyakaznacheev/cleanenv"
 )
 
+type Config struct {
+	DSN string `env:"DSN"`
+}
+
 func main() {
-	err := godotenv.Load()
+	cfg := Config{}
+	err := cleanenv.ReadConfig("../../.env", &cfg)
 	if err != nil {
-		log.Println("Error loading .env file")
+		log.Println("Error reading config from file: ", err)
 	}
 
-	dsn := os.Getenv("DSN")
-	if dsn == "" {
-		log.Fatal("Invalid DSN value in .env file")
+	err = cleanenv.ReadEnv(&cfg)
+	if err != nil {
+		log.Fatal("Error reading config from env: ", err)
 	}
 
-	db, err := database.ConnectToDB(dsn)
+	err = cleanenv.UpdateEnv(&cfg)
+	if err != nil {
+		log.Fatal("Error updating config: ", err)
+	}
+
+	db, err := database.ConnectToDB(cfg.DSN)
 	if err != nil {
 		log.Fatal(err)
 	}

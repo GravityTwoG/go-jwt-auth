@@ -7,8 +7,8 @@ import (
 	"fmt"
 	"log"
 
+	"go-jwt-auth/config"
 	"go-jwt-auth/docs"
-	"go-jwt-auth/internal/rest-api/config"
 	"go-jwt-auth/internal/rest-api/controllers"
 	"go-jwt-auth/internal/rest-api/database"
 	"go-jwt-auth/internal/rest-api/repositories"

@@ -9,6 +9,7 @@ services:
       - ../pkg:/pkg
       - ../cmd:/cmd
       - ../docs:/docs
+      - ../config:/config
       - ../.go/pkg:/go/pkg
       - ../.go-cache:/go-cache
       - ../go.mod:/go.mod
