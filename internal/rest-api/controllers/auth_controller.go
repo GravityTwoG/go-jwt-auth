@@ -47,16 +47,18 @@ func NewAuthController(
 	anonMiddleware := middlewares.AnonymousMiddleware(ac.jwtSecretKey)
 	authMiddleware := middlewares.AuthMiddleware(ac.jwtSecretKey)
 
-	r.POST("/register", anonMiddleware, ac.register)
-	r.POST("/login", anonMiddleware, ac.login)
-	r.POST("/logout", authMiddleware, ac.logout)
-	r.POST("/logout-all", authMiddleware, ac.logoutAll)
+	auth := r.Group("/auth")
 
-	r.POST("/refresh-tokens", ac.refreshTokens)
+	auth.POST("/register", anonMiddleware, ac.register)
+	auth.POST("/login", anonMiddleware, ac.login)
+	auth.POST("/logout", authMiddleware, ac.logout)
+	auth.POST("/logout-all", authMiddleware, ac.logoutAll)
 
-	r.GET("/me", authMiddleware, ac.me)
-	r.GET("/active-sessions", authMiddleware, ac.activeSessions)
-	r.GET("/config", ac.config)
+	auth.POST("/refresh-tokens", ac.refreshTokens)
+
+	auth.GET("/me", authMiddleware, ac.me)
+	auth.GET("/active-sessions", authMiddleware, ac.activeSessions)
+	auth.GET("/config", ac.config)
 }
 
 // @Tags		Auth
