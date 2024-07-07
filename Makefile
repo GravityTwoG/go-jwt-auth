@@ -47,7 +47,10 @@ infra-test-down:
 openapi:
 	swag init -g ./internal/rest-api/app/app.go --parseInternal --parseDependency
 
-linter-golangci:
+lint:
 	golangci-lint run
+
+hadolint:
+	git ls-files --exclude='Dockerfile*' -c --ignored | xargs hadolint
 
 dev: infra-detached migrate infra

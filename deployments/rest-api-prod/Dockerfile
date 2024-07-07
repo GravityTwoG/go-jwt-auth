@@ -11,6 +11,7 @@ RUN go mod download
 # Copy the rest of the application code
 COPY . .
 
+# Build migrator application
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o migrate ./cmd/migrate/main.go
 
 # Build the Go application
@@ -18,7 +19,7 @@ RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o go-jwt-auth ./cmd/rest-api
 
 
 # Stage 2: Create a minimal image
-FROM alpine:latest
+FROM alpine:3.20.1
 
 # Install necessary certificates
 RUN apk --no-cache add ca-certificates
