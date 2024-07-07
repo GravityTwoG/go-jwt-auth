@@ -13,6 +13,7 @@ import (
 
 const InvalidRefreshToken = "INVALID_REFRESH_TOKEN"
 const RefreshTokenExpired = "REFRESH_TOKEN_EXPIRED"
+const RefreshTokenNotFound = "REFRESH_TOKEN_NOT_FOUND"
 const InvalidUserAgent = "INVALID_USER_AGENT"
 const InvalidFingerPrint = "INVALID_FINGER_PRINT"
 
@@ -248,7 +249,7 @@ func (s *authService) refreshTokens(
 		)
 
 		return nil, domainerrors.NewErrEntityNotFound(
-			"REFRESH_TOKEN_NOT_FOUND",
+			RefreshTokenNotFound,
 			"refresh token not found. All refresh tokens were deleted",
 		)
 	}

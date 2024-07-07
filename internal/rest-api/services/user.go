@@ -2,10 +2,26 @@ package services
 
 import (
 	"context"
-	"fmt"
 	domainerrors "go-jwt-auth/internal/rest-api/domain-errors"
 	"go-jwt-auth/internal/rest-api/dto"
 	"go-jwt-auth/internal/rest-api/entities"
+)
+
+var (
+	ErrEmailAlreadyExists = domainerrors.NewErrEntityAlreadyExists(
+		"EMAIL_ALREADY_EXISTS",
+		"email already exists",
+	)
+
+	ErrPasswordsDontMatch = domainerrors.NewErrInvalidInput(
+		"PASSWORDS_DONT_MATCH",
+		"passwords don't match",
+	)
+
+	ErrIncorrectEmailOrPassword = domainerrors.NewErrInvalidInput(
+		"INCORRECT_EMAIL_OR_PASSWORD",
+		"incorrect email or password",
+	)
 )
 
 type UserRepository interface {
@@ -65,10 +81,7 @@ func (s *userService) Register(
 ) (*entities.User, domainerrors.ErrDomain) {
 
 	if registerDTO.Password != registerDTO.Password2 {
-		return nil, domainerrors.NewErrInvalidInput(
-			"PASSWORDS_DONT_MATCH",
-			"passwords don't match",
-		)
+		return nil, ErrPasswordsDontMatch
 	}
 
 	user, err := entities.NewUser(
@@ -81,12 +94,8 @@ func (s *userService) Register(
 
 	err = s.userRepo.Create(ctx, user)
 	if err != nil {
-		fmt.Printf("err: %v isNil: %v, isNotNil: %v\n", err, err == nil, err != nil)
 		if err.Kind() == domainerrors.EntityAlreadyExists {
-			return nil, domainerrors.NewErrEntityAlreadyExists(
-				"EMAIL_ALREADY_EXISTS",
-				"email already exists",
-			)
+			return nil, ErrEmailAlreadyExists
 		}
 
 		return nil, err
@@ -103,20 +112,14 @@ func (s *userService) Login(
 	user, err := s.userRepo.GetByEmail(ctx, loginDTO.Email)
 	if err != nil {
 		if err.Kind() == domainerrors.EntityNotFound {
-			return nil, domainerrors.NewErrInvalidInput(
-				"INCORRECT_EMAIL_OR_PASSWORD",
-				"incorrect email or password",
-			)
+			return nil, ErrIncorrectEmailOrPassword
 		}
 
 		return nil, err
 	}
 
 	if !user.ComparePassword(loginDTO.Password) {
-		return nil, domainerrors.NewErrInvalidInput(
-			"INCORRECT_EMAIL_OR_PASSWORD",
-			"incorrect email or password",
-		)
+		return nil, ErrIncorrectEmailOrPassword
 	}
 
 	return user, nil

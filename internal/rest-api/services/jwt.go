@@ -41,13 +41,17 @@ func newJWT(
 }
 
 func ParseJWT(tokenString string, jwtSecretKey []byte) (*TokenClaims, error) {
-	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
-		// Validate the alg is what we expect
-		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, jwt.ErrSignatureInvalid
-		}
-		return jwtSecretKey, nil
-	})
+	token, err := jwt.Parse(
+		tokenString,
+		func(token *jwt.Token) (interface{}, error) {
+			// Validate the alg is what we expect
+			_, ok := token.Method.(*jwt.SigningMethodHMAC)
+			if !ok {
+				return nil, jwt.ErrSignatureInvalid
+			}
+			return jwtSecretKey, nil
+		},
+	)
 	if err != nil {
 		return nil, err
 	}

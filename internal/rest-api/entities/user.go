@@ -7,6 +7,18 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
+var (
+	ErrInvalidEmail = domainerrors.NewErrInvalidInput(
+		"EMAIL_INVALID_LENGTH",
+		"email length must be between 3 and 256 characters",
+	)
+
+	ErrInvalidPasswordLength = domainerrors.NewErrInvalidInput(
+		"PASSWORD_LENGTH_INVALID",
+		"password length must be between 8 and 64 characters",
+	)
+)
+
 type User struct {
 	id uint
 
@@ -24,10 +36,7 @@ func NewUser(
 	user := User{}
 
 	if len(email) < 3 || len(email) > 256 {
-		return nil, domainerrors.NewErrInvalidInput(
-			"EMAIL_INVALID_LENGTH",
-			"email must be between 3 and 256 characters",
-		)
+		return nil, ErrInvalidEmail
 	}
 	user.email = email
 
@@ -65,10 +74,7 @@ func (u *User) GetPassword() string {
 
 func (u *User) ChangePassword(rawPassword string) domainerrors.ErrDomain {
 	if len(rawPassword) < 8 || len(rawPassword) > 64 {
-		return domainerrors.NewErrInvalidInput(
-			"PASSWORD_LENGTH_INVALID",
-			"password must be between 8 and 64 characters",
-		)
+		return ErrInvalidPasswordLength
 	}
 
 	hashedPassword, err := hashPassword(rawPassword)
@@ -98,7 +104,10 @@ func hashPassword(password string) (string, domainerrors.ErrDomain) {
 }
 
 func comparePasswords(hashedPassword, password string) bool {
-	err := bcrypt.CompareHashAndPassword([]byte(hashedPassword), []byte(password))
+	err := bcrypt.CompareHashAndPassword(
+		[]byte(hashedPassword),
+		[]byte(password),
+	)
 	return err == nil
 }
 
