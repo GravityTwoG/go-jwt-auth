@@ -191,7 +191,16 @@ sequenceDiagram
     end
 ```
 
-## Folder structure
+## Development
+
+### Prerequisites
+
+```sh
+# install golangci-lint
+curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.59.1
+```
+
+### Folder structure
 
 - cmd - entry files for rest-api and migrator
 - internal - internal packages

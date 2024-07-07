@@ -177,7 +177,7 @@ func TestUserService_Login(t *testing.T) {
 			},
 			mockSetup: func(m *mockedUserRepository) {
 				userFromDB := entities.UserFromDB(1, "w8vCq@example.com", "")
-				userFromDB.ChangePassword("password")
+				_ = userFromDB.ChangePassword("password")
 				m.On("GetByEmail", mock.Anything, mock.Anything).Return(userFromDB, nil)
 			},
 			expectedErr: false,

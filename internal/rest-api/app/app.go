@@ -112,7 +112,8 @@ func Run() {
 	})
 
 	// Start server
-	r.Run(fmt.Sprintf(":%s", cfg.Port))
+	err = r.Run(fmt.Sprintf(":%s", cfg.Port))
+	fmt.Println("r.Run ", err)
 }
 
 func corsMiddleware(allowedOrigins []string) gin.HandlerFunc {

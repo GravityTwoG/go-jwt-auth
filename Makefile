@@ -47,4 +47,7 @@ infra-test-down:
 openapi:
 	swag init -g ./internal/rest-api/app/app.go --parseInternal --parseDependency
 
+linter-golangci:
+	golangci-lint run
+
 dev: infra-detached migrate infra

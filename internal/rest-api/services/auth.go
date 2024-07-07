@@ -217,7 +217,7 @@ func (s *authService) RefreshTokens(
 	var tokens *Tokens = nil
 	var domainError domainerrors.ErrDomain = nil
 
-	s.trManager.Do(ctx, func(ctx context.Context) error {
+	err := s.trManager.Do(ctx, func(ctx context.Context) error {
 
 		tokens, domainError = s.refreshTokens(
 			ctx,
@@ -227,6 +227,10 @@ func (s *authService) RefreshTokens(
 
 		return domainError
 	})
+
+	if err != nil && domainError == nil {
+		log.Printf("authService.RefreshTokens transaction err: %v", err)
+	}
 
 	return tokens, domainError
 }
@@ -243,7 +247,7 @@ func (s *authService) refreshTokens(
 	// but this token doesn't exist in DB.
 	// Maybe was stolen and deleted by another person.
 	if err != nil && err.Kind() == domainerrors.EntityNotFound {
-		s.refreshTokenRepository.DeleteByUserID(
+		_ = s.refreshTokenRepository.DeleteByUserID(
 			ctx,
 			userID,
 		)
@@ -258,7 +262,7 @@ func (s *authService) refreshTokens(
 	}
 
 	if refreshTokenEntity.GetUserAgent() != dto.UserAgent {
-		s.refreshTokenRepository.DeleteByUserID(
+		_ = s.refreshTokenRepository.DeleteByUserID(
 			ctx,
 			userID,
 		)
@@ -270,7 +274,7 @@ func (s *authService) refreshTokens(
 	}
 
 	if refreshTokenEntity.GetFingerPrint() != dto.FingerPrint {
-		s.refreshTokenRepository.DeleteByUserID(
+		_ = s.refreshTokenRepository.DeleteByUserID(
 			ctx,
 			userID,
 		)
@@ -345,12 +349,16 @@ func (s *authService) Logout(
 ) domainerrors.ErrDomain {
 	var domainError domainerrors.ErrDomain = nil
 
-	s.trManager.Do(ctx, func(ctx context.Context) error {
+	err := s.trManager.Do(ctx, func(ctx context.Context) error {
 
 		domainError = s.logout(ctx, refreshToken, userAgent)
 
 		return domainError
 	})
+
+	if err != nil && domainError == nil {
+		log.Printf("authService.Logout transaction err: %v", err)
+	}
 
 	return domainError
 }
@@ -385,12 +393,16 @@ func (s *authService) LogoutAll(
 ) domainerrors.ErrDomain {
 	var domainError domainerrors.ErrDomain = nil
 
-	s.trManager.Do(ctx, func(ctx context.Context) error {
+	err := s.trManager.Do(ctx, func(ctx context.Context) error {
 
 		domainError = s.logoutAll(ctx, refreshToken, userAgent)
 
 		return domainError
 	})
+
+	if err != nil && domainError == nil {
+		log.Printf("authService.LogoutAll transaction err: %v", err)
+	}
 
 	return domainError
 }

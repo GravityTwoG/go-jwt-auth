@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"fmt"
 	"net/http"
 
 	domainerrors "go-jwt-auth/internal/rest-api/domain-errors"
@@ -261,11 +262,14 @@ func (ac *authController) logout(c *gin.Context) {
 			Message: err.Error(),
 		})
 	} else {
-		ac.authService.Logout(
+		err = ac.authService.Logout(
 			c,
 			refreshToken,
 			c.GetHeader("User-Agent"),
 		)
+		if err != nil {
+			fmt.Println("Logout error: ", err)
+		}
 
 		// Delete refresh token from cookie
 		resetCookie(c, cookieName, ac.domain, ac.path)
