@@ -38,7 +38,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.SessionsDTO"
+                            "$ref": "#/definitions/go-jwt-auth_internal_rest-api_dto.SessionsDTO"
                         }
                     }
                 }
@@ -58,7 +58,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.ConfigDTO"
+                            "$ref": "#/definitions/go-jwt-auth_internal_rest-api_dto.ConfigDTO"
                         }
                     }
                 }
@@ -84,7 +84,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/dto.LoginDTO"
+                            "$ref": "#/definitions/go-jwt-auth_internal_rest-api_dto.LoginDTO"
                         }
                     }
                 ],
@@ -92,19 +92,19 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.LoginResponseDTO"
+                            "$ref": "#/definitions/go-jwt-auth_internal_rest-api_dto.LoginResponseDTO"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponseDTO"
+                            "$ref": "#/definitions/go-jwt-auth_internal_rest-api_dto.ErrorResponseDTO"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponseDTO"
+                            "$ref": "#/definitions/go-jwt-auth_internal_rest-api_dto.ErrorResponseDTO"
                         }
                     }
                 }
@@ -128,7 +128,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.CommonResponseDTO"
+                            "$ref": "#/definitions/go-jwt-auth_internal_rest-api_dto.CommonResponseDTO"
                         }
                     }
                 }
@@ -152,7 +152,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.CommonResponseDTO"
+                            "$ref": "#/definitions/go-jwt-auth_internal_rest-api_dto.CommonResponseDTO"
                         }
                     }
                 }
@@ -176,7 +176,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.UserDTO"
+                            "$ref": "#/definitions/go-jwt-auth_internal_rest-api_dto.UserDTO"
                         }
                     }
                 }
@@ -207,7 +207,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/dto.RefreshTokensDTO"
+                            "$ref": "#/definitions/go-jwt-auth_internal_rest-api_dto.RefreshTokensDTO"
                         }
                     }
                 ],
@@ -215,13 +215,13 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.RefreshTokensResponseDTO"
+                            "$ref": "#/definitions/go-jwt-auth_internal_rest-api_dto.RefreshTokensResponseDTO"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponseDTO"
+                            "$ref": "#/definitions/go-jwt-auth_internal_rest-api_dto.ErrorResponseDTO"
                         }
                     }
                 }
@@ -246,7 +246,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/dto.RegisterDTO"
+                            "$ref": "#/definitions/go-jwt-auth_internal_rest-api_dto.RegisterDTO"
                         }
                     }
                 ],
@@ -254,13 +254,13 @@ const docTemplate = `{
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "$ref": "#/definitions/dto.UserDTO"
+                            "$ref": "#/definitions/go-jwt-auth_internal_rest-api_dto.UserDTO"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponseDTO"
+                            "$ref": "#/definitions/go-jwt-auth_internal_rest-api_dto.ErrorResponseDTO"
                         }
                     }
                 }
@@ -268,7 +268,7 @@ const docTemplate = `{
         }
     },
     "definitions": {
-        "dto.CommonResponseDTO": {
+        "go-jwt-auth_internal_rest-api_dto.CommonResponseDTO": {
             "type": "object",
             "properties": {
                 "message": {
@@ -276,7 +276,7 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.ConfigDTO": {
+        "go-jwt-auth_internal_rest-api_dto.ConfigDTO": {
             "type": "object",
             "properties": {
                 "accessTokenTTLsec": {
@@ -287,7 +287,7 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.ErrorResponseDTO": {
+        "go-jwt-auth_internal_rest-api_dto.ErrorResponseDTO": {
             "type": "object",
             "properties": {
                 "code": {
@@ -301,7 +301,7 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.LoginDTO": {
+        "go-jwt-auth_internal_rest-api_dto.LoginDTO": {
             "type": "object",
             "required": [
                 "email",
@@ -320,7 +320,7 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.LoginResponseDTO": {
+        "go-jwt-auth_internal_rest-api_dto.LoginResponseDTO": {
             "type": "object",
             "properties": {
                 "accessToken": {
@@ -330,11 +330,11 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "user": {
-                    "$ref": "#/definitions/dto.UserDTO"
+                    "$ref": "#/definitions/go-jwt-auth_internal_rest-api_dto.UserDTO"
                 }
             }
         },
-        "dto.RefreshTokensDTO": {
+        "go-jwt-auth_internal_rest-api_dto.RefreshTokensDTO": {
             "type": "object",
             "required": [
                 "fingerPrint"
@@ -345,7 +345,7 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.RefreshTokensResponseDTO": {
+        "go-jwt-auth_internal_rest-api_dto.RefreshTokensResponseDTO": {
             "type": "object",
             "properties": {
                 "accessToken": {
@@ -356,7 +356,7 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.RegisterDTO": {
+        "go-jwt-auth_internal_rest-api_dto.RegisterDTO": {
             "type": "object",
             "required": [
                 "email",
@@ -375,7 +375,7 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.SessionDTO": {
+        "go-jwt-auth_internal_rest-api_dto.SessionDTO": {
             "type": "object",
             "properties": {
                 "createdAt": {
@@ -392,18 +392,18 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.SessionsDTO": {
+        "go-jwt-auth_internal_rest-api_dto.SessionsDTO": {
             "type": "object",
             "properties": {
                 "sessions": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/dto.SessionDTO"
+                        "$ref": "#/definitions/go-jwt-auth_internal_rest-api_dto.SessionDTO"
                     }
                 }
             }
         },
-        "dto.UserDTO": {
+        "go-jwt-auth_internal_rest-api_dto.UserDTO": {
             "type": "object",
             "properties": {
                 "email": {

@@ -1,18 +1,18 @@
 basePath: /api
 definitions:
-  dto.CommonResponseDTO:
+  go-jwt-auth_internal_rest-api_dto.CommonResponseDTO:
     properties:
       message:
         type: string
     type: object
-  dto.ConfigDTO:
+  go-jwt-auth_internal_rest-api_dto.ConfigDTO:
     properties:
       accessTokenTTLsec:
         type: integer
       refreshTokenTTLsec:
         type: integer
     type: object
-  dto.ErrorResponseDTO:
+  go-jwt-auth_internal_rest-api_dto.ErrorResponseDTO:
     properties:
       code:
         type: string
@@ -21,7 +21,7 @@ definitions:
       kind:
         type: string
     type: object
-  dto.LoginDTO:
+  go-jwt-auth_internal_rest-api_dto.LoginDTO:
     properties:
       email:
         type: string
@@ -34,30 +34,30 @@ definitions:
     - fingerPrint
     - password
     type: object
-  dto.LoginResponseDTO:
+  go-jwt-auth_internal_rest-api_dto.LoginResponseDTO:
     properties:
       accessToken:
         type: string
       refreshToken:
         type: string
       user:
-        $ref: '#/definitions/dto.UserDTO'
+        $ref: '#/definitions/go-jwt-auth_internal_rest-api_dto.UserDTO'
     type: object
-  dto.RefreshTokensDTO:
+  go-jwt-auth_internal_rest-api_dto.RefreshTokensDTO:
     properties:
       fingerPrint:
         type: string
     required:
     - fingerPrint
     type: object
-  dto.RefreshTokensResponseDTO:
+  go-jwt-auth_internal_rest-api_dto.RefreshTokensResponseDTO:
     properties:
       accessToken:
         type: string
       refreshToken:
         type: string
     type: object
-  dto.RegisterDTO:
+  go-jwt-auth_internal_rest-api_dto.RegisterDTO:
     properties:
       email:
         type: string
@@ -70,7 +70,7 @@ definitions:
     - password
     - password2
     type: object
-  dto.SessionDTO:
+  go-jwt-auth_internal_rest-api_dto.SessionDTO:
     properties:
       createdAt:
         type: string
@@ -81,14 +81,14 @@ definitions:
       userAgent:
         type: string
     type: object
-  dto.SessionsDTO:
+  go-jwt-auth_internal_rest-api_dto.SessionsDTO:
     properties:
       sessions:
         items:
-          $ref: '#/definitions/dto.SessionDTO'
+          $ref: '#/definitions/go-jwt-auth_internal_rest-api_dto.SessionDTO'
         type: array
     type: object
-  dto.UserDTO:
+  go-jwt-auth_internal_rest-api_dto.UserDTO:
     properties:
       email:
         type: string
@@ -114,7 +114,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/dto.SessionsDTO'
+            $ref: '#/definitions/go-jwt-auth_internal_rest-api_dto.SessionsDTO'
       security:
       - ApiKeyAuth: []
       summary: Get active sessions
@@ -129,7 +129,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/dto.ConfigDTO'
+            $ref: '#/definitions/go-jwt-auth_internal_rest-api_dto.ConfigDTO'
       summary: Get tokens config
       tags:
       - Auth
@@ -144,22 +144,22 @@ paths:
         name: body
         required: true
         schema:
-          $ref: '#/definitions/dto.LoginDTO'
+          $ref: '#/definitions/go-jwt-auth_internal_rest-api_dto.LoginDTO'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/dto.LoginResponseDTO'
+            $ref: '#/definitions/go-jwt-auth_internal_rest-api_dto.LoginResponseDTO'
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/dto.ErrorResponseDTO'
+            $ref: '#/definitions/go-jwt-auth_internal_rest-api_dto.ErrorResponseDTO'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/dto.ErrorResponseDTO'
+            $ref: '#/definitions/go-jwt-auth_internal_rest-api_dto.ErrorResponseDTO'
       summary: Login user
       tags:
       - Auth
@@ -171,7 +171,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/dto.CommonResponseDTO'
+            $ref: '#/definitions/go-jwt-auth_internal_rest-api_dto.CommonResponseDTO'
       security:
       - ApiKeyAuth: []
       summary: Logout user
@@ -185,7 +185,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/dto.CommonResponseDTO'
+            $ref: '#/definitions/go-jwt-auth_internal_rest-api_dto.CommonResponseDTO'
       security:
       - ApiKeyAuth: []
       summary: Logout all sessions
@@ -199,7 +199,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/dto.UserDTO'
+            $ref: '#/definitions/go-jwt-auth_internal_rest-api_dto.UserDTO'
       security:
       - ApiKeyAuth: []
       summary: Get current user
@@ -216,18 +216,18 @@ paths:
         name: body
         required: true
         schema:
-          $ref: '#/definitions/dto.RefreshTokensDTO'
+          $ref: '#/definitions/go-jwt-auth_internal_rest-api_dto.RefreshTokensDTO'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/dto.RefreshTokensResponseDTO'
+            $ref: '#/definitions/go-jwt-auth_internal_rest-api_dto.RefreshTokensResponseDTO'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/dto.ErrorResponseDTO'
+            $ref: '#/definitions/go-jwt-auth_internal_rest-api_dto.ErrorResponseDTO'
       security:
       - ApiKeyAuth: []
       summary: Refresh tokens
@@ -243,18 +243,18 @@ paths:
         name: body
         required: true
         schema:
-          $ref: '#/definitions/dto.RegisterDTO'
+          $ref: '#/definitions/go-jwt-auth_internal_rest-api_dto.RegisterDTO'
       produces:
       - application/json
       responses:
         "201":
           description: Created
           schema:
-            $ref: '#/definitions/dto.UserDTO'
+            $ref: '#/definitions/go-jwt-auth_internal_rest-api_dto.UserDTO'
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/dto.ErrorResponseDTO'
+            $ref: '#/definitions/go-jwt-auth_internal_rest-api_dto.ErrorResponseDTO'
       summary: Register new user
       tags:
       - Auth

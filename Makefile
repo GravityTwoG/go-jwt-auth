@@ -45,6 +45,6 @@ infra-test-down:
 	cd deployments && docker-compose -f docker-compose.test.yaml down
 
 openapi:
-	swag init -g ./cmd/rest-api/main.go
+	swag init -g ./internal/rest-api/app/app.go --parseInternal --parseDependency
 
 dev: infra-detached migrate infra
