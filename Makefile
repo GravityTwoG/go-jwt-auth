@@ -23,6 +23,16 @@ test:
 test-tparse:
 	set -o pipefail && go test -json ./... | tparse -all
 
+coverage: 
+	go test -coverprofile=coverage.out ./...
+	go tool cover -func=coverage.out
+	rm coverage.out
+
+coverage-html: 
+	go test -coverprofile=coverage.out ./...
+	go tool cover -html=coverage.out
+	rm coverage.out
+
 infra:
 	cd deployments && docker-compose up
 
