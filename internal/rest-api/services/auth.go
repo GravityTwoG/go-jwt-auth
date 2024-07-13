@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"crypto/rsa"
 	domainerrors "go-jwt-auth/internal/rest-api/domain-errors"
 	"go-jwt-auth/internal/rest-api/dto"
 	"go-jwt-auth/internal/rest-api/entities"
@@ -116,7 +117,8 @@ type authService struct {
 
 	refreshTokenRepository RefreshTokenRepository
 
-	jwtSecretKey       []byte
+	jwtPrivateKey      *rsa.PrivateKey
+	jwtPublicKey       *rsa.PublicKey
 	accessTokenTTLsec  int
 	refreshTokenTTLsec int
 }
@@ -125,10 +127,12 @@ func NewAuthService(
 	trManager *manager.Manager,
 	userService UserService,
 	refreshTokenRepository RefreshTokenRepository,
-	jwtSecretKey string,
+	jwtPrivateKey *rsa.PrivateKey,
 	jwtAccessTTL int,
 	refreshTokenTTL int,
 ) AuthService {
+
+	jwtPrivateKey.Public()
 
 	return &authService{
 		trManager: trManager,
@@ -137,7 +141,8 @@ func NewAuthService(
 
 		refreshTokenRepository: refreshTokenRepository,
 
-		jwtSecretKey:       []byte(jwtSecretKey),
+		jwtPrivateKey:      jwtPrivateKey,
+		jwtPublicKey:       &jwtPrivateKey.PublicKey,
 		accessTokenTTLsec:  jwtAccessTTL,
 		refreshTokenTTLsec: refreshTokenTTL,
 	}
@@ -166,7 +171,7 @@ func (s *authService) Login(
 	accessToken, err := newJWT(
 		user,
 		s.accessTokenTTLsec,
-		s.jwtSecretKey,
+		s.jwtPrivateKey,
 	)
 	if err != nil {
 		return nil, nil, err
@@ -175,7 +180,7 @@ func (s *authService) Login(
 	refreshToken, err := newJWT(
 		user,
 		s.refreshTokenTTLsec,
-		s.jwtSecretKey,
+		s.jwtPrivateKey,
 	)
 	if err != nil {
 		return nil, nil, err
@@ -206,7 +211,7 @@ func (s *authService) RefreshTokens(
 	dto *RefreshTokensDTO,
 ) (*Tokens, domainerrors.ErrDomain) {
 
-	tokenClaims, jwtErr := ParseJWT(dto.OldToken, s.jwtSecretKey)
+	tokenClaims, jwtErr := ParseJWT(dto.OldToken, s.jwtPublicKey)
 	if jwtErr != nil {
 		return nil, domainerrors.NewErrInvalidInput(
 			InvalidRefreshToken,
@@ -289,7 +294,7 @@ func (s *authService) refreshTokens(
 	accessToken, err := newJWT(
 		refreshTokenEntity.GetUser(),
 		s.accessTokenTTLsec,
-		s.jwtSecretKey,
+		s.jwtPrivateKey,
 	)
 	if err != nil {
 		return nil, err
@@ -299,7 +304,7 @@ func (s *authService) refreshTokens(
 	newRefreshToken, err := newJWT(
 		refreshTokenEntity.GetUser(),
 		s.refreshTokenTTLsec,
-		s.jwtSecretKey,
+		s.jwtPrivateKey,
 	)
 	if err != nil {
 		return nil, err

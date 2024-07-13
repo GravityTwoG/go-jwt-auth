@@ -1,6 +1,7 @@
 package middlewares
 
 import (
+	"crypto/rsa"
 	"errors"
 	"go-jwt-auth/internal/rest-api/dto"
 	"go-jwt-auth/internal/rest-api/services"
@@ -17,7 +18,7 @@ var ErrAuthHeaderInvalid = errors.New(
 
 // Checks if provided bearer token is valid.
 // Sets email to the context if everything is valid.
-func AuthMiddleware(jwtSecretKey []byte) gin.HandlerFunc {
+func AuthMiddleware(jwtPublicKey *rsa.PublicKey) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		tokenString, err := parseBearerToken(c)
 		if err != nil {
@@ -26,7 +27,7 @@ func AuthMiddleware(jwtSecretKey []byte) gin.HandlerFunc {
 			return
 		}
 
-		claims, err := services.ParseJWT(tokenString, jwtSecretKey)
+		claims, err := services.ParseJWT(tokenString, jwtPublicKey)
 		if err != nil {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid or expired token"})
 			c.Abort()
@@ -56,7 +57,7 @@ func ExtractUser(c *gin.Context) *dto.UserDTO {
 // Checks if provided bearer token is expired or it is not provided.
 // If it is provided and valid, aborts the request
 // If it is provided and is not valid, aborts the request
-func AnonymousMiddleware(jwtSecretKey []byte) gin.HandlerFunc {
+func AnonymousMiddleware(jwtPublicKey *rsa.PublicKey) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		tokenString, err := parseBearerToken(c)
 		if err != nil && errors.Is(err, ErrAuthHeaderMissing) {
@@ -64,7 +65,7 @@ func AnonymousMiddleware(jwtSecretKey []byte) gin.HandlerFunc {
 			return
 		}
 
-		_, err = services.ParseJWT(tokenString, jwtSecretKey)
+		_, err = services.ParseJWT(tokenString, jwtPublicKey)
 		// If the token is not valid or it is not provided, continue
 		if err != nil {
 			c.Next()

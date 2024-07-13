@@ -200,6 +200,19 @@ sequenceDiagram
 curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.59.1
 ```
 
+### Generate RSA keys (you can do this using OpenSSL):
+
+```sh
+openssl genrsa -out private.pem 2048
+openssl rsa -in private.pem -pubout -out public.pem
+```
+
+Encode the PEM files as Base64:
+
+```sh
+export JWT_PRIVATE_KEY=$(cat private.pem | base64 -w 0)
+```
+
 ### Folder structure
 
 - cmd - entry files for rest-api and migrator
@@ -215,6 +228,10 @@ curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/insta
 - - - dto - Data transfer objects
 - deployments - docker and docker compose files
 - docs - swagger docs
+
+```
+
+```
 
 ```
 

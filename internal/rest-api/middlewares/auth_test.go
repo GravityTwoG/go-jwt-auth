@@ -1,7 +1,10 @@
 package middlewares_test
 
 import (
+	"crypto/rand"
+	"crypto/rsa"
 	"go-jwt-auth/internal/rest-api/middlewares"
+	"log"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -12,9 +15,9 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func generateJWT(secretKey []byte, claims jwt.MapClaims) (string, error) {
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	tokenString, err := token.SignedString(secretKey)
+func generateJWT(privateKey *rsa.PrivateKey, claims jwt.MapClaims) (string, error) {
+	token := jwt.NewWithClaims(jwt.SigningMethodRS256, claims)
+	tokenString, err := token.SignedString(privateKey)
 	if err != nil {
 		return "", err
 	}
@@ -22,6 +25,16 @@ func generateJWT(secretKey []byte, claims jwt.MapClaims) (string, error) {
 }
 
 func TestAuthMiddleware(t *testing.T) {
+	privateKey, err := rsa.GenerateKey(rand.Reader, 2048)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	otherPrivateKey, err := rsa.GenerateKey(rand.Reader, 2048)
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	tests := []struct {
 		name string
 
@@ -41,7 +54,7 @@ func TestAuthMiddleware(t *testing.T) {
 			},
 
 			setupRouter: func(router *gin.Engine) {
-				router.Use(middlewares.AuthMiddleware([]byte("secret")))
+				router.Use(middlewares.AuthMiddleware(&privateKey.PublicKey))
 				router.GET("/test", func(c *gin.Context) {
 					user := middlewares.ExtractUser(c)
 					assert.NotNil(t, user)
@@ -58,7 +71,7 @@ func TestAuthMiddleware(t *testing.T) {
 			token: "invalidtoken",
 
 			setupRouter: func(router *gin.Engine) {
-				router.Use(middlewares.AuthMiddleware([]byte("secret")))
+				router.Use(middlewares.AuthMiddleware(&privateKey.PublicKey))
 				router.GET("/test", func(c *gin.Context) {
 					c.Status(http.StatusOK)
 				})
@@ -72,7 +85,7 @@ func TestAuthMiddleware(t *testing.T) {
 			token: "invalidtoken",
 
 			setupRouter: func(router *gin.Engine) {
-				router.Use(middlewares.AuthMiddleware([]byte("othersecret")))
+				router.Use(middlewares.AuthMiddleware(&otherPrivateKey.PublicKey))
 				router.GET("/test", func(c *gin.Context) {
 					c.Status(http.StatusOK)
 				})
@@ -89,7 +102,7 @@ func TestAuthMiddleware(t *testing.T) {
 				"id":    uint(123),
 			},
 			setupRouter: func(router *gin.Engine) {
-				router.Use(middlewares.AuthMiddleware([]byte("secret")))
+				router.Use(middlewares.AuthMiddleware(&privateKey.PublicKey))
 				router.GET("/test", func(c *gin.Context) {
 					c.Status(http.StatusOK)
 				})
@@ -98,8 +111,6 @@ func TestAuthMiddleware(t *testing.T) {
 			expectedStatus: http.StatusUnauthorized,
 		},
 	}
-
-	secretKey := []byte("secret")
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -111,7 +122,7 @@ func TestAuthMiddleware(t *testing.T) {
 				tokenString = tt.token
 			} else if tt.claims != nil {
 				var err error
-				tokenString, err = generateJWT(secretKey, tt.claims)
+				tokenString, err = generateJWT(privateKey, tt.claims)
 				assert.NoError(t, err)
 			}
 
@@ -132,6 +143,11 @@ func TestAuthMiddleware(t *testing.T) {
 }
 
 func TestAnonymousMiddleware(t *testing.T) {
+	privateKey, err := rsa.GenerateKey(rand.Reader, 2048)
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	tests := []struct {
 		name   string
 		claims jwt.MapClaims
@@ -150,7 +166,7 @@ func TestAnonymousMiddleware(t *testing.T) {
 			},
 
 			setupRouter: func(router *gin.Engine) {
-				router.Use(middlewares.AnonymousMiddleware([]byte("secret")))
+				router.Use(middlewares.AnonymousMiddleware(&privateKey.PublicKey))
 				router.GET("/test", func(c *gin.Context) {
 					c.Status(http.StatusOK)
 				})
@@ -162,7 +178,7 @@ func TestAnonymousMiddleware(t *testing.T) {
 			name: "should allow access without token",
 
 			setupRouter: func(router *gin.Engine) {
-				router.Use(middlewares.AnonymousMiddleware([]byte("secret")))
+				router.Use(middlewares.AnonymousMiddleware(&privateKey.PublicKey))
 				router.GET("/test", func(c *gin.Context) {
 					c.Status(http.StatusOK)
 				})
@@ -175,7 +191,7 @@ func TestAnonymousMiddleware(t *testing.T) {
 			token: "invalidtoken",
 
 			setupRouter: func(router *gin.Engine) {
-				router.Use(middlewares.AnonymousMiddleware([]byte("secret")))
+				router.Use(middlewares.AnonymousMiddleware(&privateKey.PublicKey))
 				router.GET("/test", func(c *gin.Context) {
 					c.Status(http.StatusOK)
 				})
@@ -184,8 +200,6 @@ func TestAnonymousMiddleware(t *testing.T) {
 			expectedStatus: http.StatusOK,
 		},
 	}
-
-	secretKey := []byte("secret")
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -197,7 +211,7 @@ func TestAnonymousMiddleware(t *testing.T) {
 				tokenString = tt.token
 			} else if tt.claims != nil {
 				var err error
-				tokenString, err = generateJWT(secretKey, tt.claims)
+				tokenString, err = generateJWT(privateKey, tt.claims)
 				assert.NoError(t, err)
 			}
 

@@ -8,7 +8,7 @@ import (
 )
 
 type Config struct {
-	JWTSecretKey       string `env:"JWT_SECRET_KEY" env-required:"true"`
+	JWTPrivateKey      string `env:"JWT_PRIVATE_KEY" env-required:"true"`
 	AccessTokenTTLsec  int    `env:"ACCESS_TOKEN_TTL_SEC" env-required:"true"`
 	RefreshTokenTTLsec int    `env:"REFRESH_TOKEN_TTL_SEC" env-required:"true"`
 

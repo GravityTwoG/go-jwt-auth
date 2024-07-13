@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"crypto/rsa"
 	"fmt"
 	"net/http"
 
@@ -24,7 +25,7 @@ var ErrRefreshTokenNotFound = domainerrors.NewErrEntityNotFound(
 type authController struct {
 	authService services.AuthService
 
-	jwtSecretKey []byte
+	jwtPublicKey *rsa.PublicKey
 	domain       string
 	path         string
 }
@@ -32,20 +33,20 @@ type authController struct {
 func NewAuthController(
 	r *gin.RouterGroup,
 	authService services.AuthService,
-	jwtSecretKey string,
+	jwtPublicKey *rsa.PublicKey,
 	domain string,
 	path string,
 ) {
 	ac := authController{
 		authService: authService,
 
-		jwtSecretKey: []byte(jwtSecretKey),
+		jwtPublicKey: jwtPublicKey,
 		domain:       domain,
 		path:         path,
 	}
 
-	anonMiddleware := middlewares.AnonymousMiddleware(ac.jwtSecretKey)
-	authMiddleware := middlewares.AuthMiddleware(ac.jwtSecretKey)
+	anonMiddleware := middlewares.AnonymousMiddleware(ac.jwtPublicKey)
+	authMiddleware := middlewares.AuthMiddleware(ac.jwtPublicKey)
 
 	auth := r.Group("/auth")
 

@@ -2,6 +2,9 @@ package services_test
 
 import (
 	"context"
+	"crypto/rand"
+	"crypto/rsa"
+	"log"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -280,11 +283,16 @@ func TestAuthService_Login(t *testing.T) {
 				mockRefreshTokenRepository.On("Create", mock.Anything, mock.AnythingOfType("*entities.RefreshToken")).Return(tt.mockRefreshCreateErr)
 			}
 
+			privateKey, err := rsa.GenerateKey(rand.Reader, 2048)
+			if err != nil {
+				log.Fatal(err)
+			}
+
 			authService := services.NewAuthService(
 				nil,
 				mockUserService,
 				mockRefreshTokenRepository,
-				"secret_key",
+				privateKey,
 				3600,
 				86400,
 			)

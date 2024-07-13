@@ -66,12 +66,19 @@ func Run() {
 		trmgorm.DefaultCtxGetter,
 	)
 
+	privateKey, err := services.ParseRSAKey(
+		cfg.JWTPrivateKey,
+	)
+	if err != nil {
+		log.Fatal("Error parsing RSA key: ", err)
+	}
+
 	userService := services.NewUserService(userRepo)
 	authService := services.NewAuthService(
 		trManager,
 		userService,
 		refreshTokenRepo,
-		cfg.JWTSecretKey,
+		privateKey,
 		cfg.AccessTokenTTLsec,
 		cfg.RefreshTokenTTLsec,
 	)
@@ -80,7 +87,7 @@ func Run() {
 	controllers.NewAuthController(
 		api,
 		authService,
-		cfg.JWTSecretKey,
+		&privateKey.PublicKey,
 		cfg.Domain,
 		"/api/auth",
 	)
