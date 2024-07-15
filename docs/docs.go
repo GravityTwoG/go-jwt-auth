@@ -64,9 +64,123 @@ const docTemplate = `{
                 }
             }
         },
+        "/auth/google/consent": {
+            "get": {
+                "description": "Logins user, also sets refresh token in cookie",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "Request redirect URL for google consent screen",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "redirectURL",
+                        "name": "redirectURL",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/internal_rest-api_controllers.GoogleRedirectDTO"
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/google/login-callback": {
+            "post": {
+                "description": "Logins user, also sets refresh token in cookie",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "Login user with google",
+                "parameters": [
+                    {
+                        "description": "LoginWithGoogleDTO",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/go-jwt-auth_internal_rest-api_dto.LoginWithGoogleDTO"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/go-jwt-auth_internal_rest-api_dto.LoginResponseDTO"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/go-jwt-auth_internal_rest-api_dto.ErrorResponseDTO"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/go-jwt-auth_internal_rest-api_dto.ErrorResponseDTO"
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/google/register-callback": {
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "Register new user with google",
+                "parameters": [
+                    {
+                        "description": "RegisterWithGoogleDTO",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/go-jwt-auth_internal_rest-api_dto.RegisterWithGoogleDTO"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/go-jwt-auth_internal_rest-api_dto.UserDTO"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/go-jwt-auth_internal_rest-api_dto.ErrorResponseDTO"
+                        }
+                    }
+                }
+            }
+        },
         "/auth/login": {
             "post": {
-                "description": "Login user, also sets refresh token in cookie",
+                "description": "Logins user, also sets refresh token in cookie",
                 "consumes": [
                     "application/json"
                 ],
@@ -334,6 +448,25 @@ const docTemplate = `{
                 }
             }
         },
+        "go-jwt-auth_internal_rest-api_dto.LoginWithGoogleDTO": {
+            "type": "object",
+            "required": [
+                "code",
+                "fingerPrint",
+                "redirectURL"
+            ],
+            "properties": {
+                "code": {
+                    "type": "string"
+                },
+                "fingerPrint": {
+                    "type": "string"
+                },
+                "redirectURL": {
+                    "type": "string"
+                }
+            }
+        },
         "go-jwt-auth_internal_rest-api_dto.RefreshTokensDTO": {
             "type": "object",
             "required": [
@@ -375,6 +508,21 @@ const docTemplate = `{
                 }
             }
         },
+        "go-jwt-auth_internal_rest-api_dto.RegisterWithGoogleDTO": {
+            "type": "object",
+            "required": [
+                "code",
+                "redirectURL"
+            ],
+            "properties": {
+                "code": {
+                    "type": "string"
+                },
+                "redirectURL": {
+                    "type": "string"
+                }
+            }
+        },
         "go-jwt-auth_internal_rest-api_dto.SessionDTO": {
             "type": "object",
             "properties": {
@@ -411,6 +559,14 @@ const docTemplate = `{
                 },
                 "id": {
                     "type": "integer"
+                }
+            }
+        },
+        "internal_rest-api_controllers.GoogleRedirectDTO": {
+            "type": "object",
+            "properties": {
+                "redirectURL": {
+                    "type": "string"
                 }
             }
         }

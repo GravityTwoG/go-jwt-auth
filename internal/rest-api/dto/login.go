@@ -6,6 +6,12 @@ type LoginDTO struct {
 	FingerPrint string `json:"fingerPrint" binding:"required"`
 }
 
+type LoginWithGoogleDTO struct {
+	Code        string `json:"code" binding:"required"`
+	FingerPrint string `json:"fingerPrint" binding:"required"`
+	RedirectURL string `json:"redirectURL" binding:"required"`
+}
+
 type LoginResponseDTO struct {
 	AccessToken  string  `json:"accessToken"`
 	RefreshToken string  `json:"refreshToken"`

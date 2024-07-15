@@ -27,7 +27,7 @@ func AuthMiddleware(jwtPublicKey *rsa.PublicKey) gin.HandlerFunc {
 			return
 		}
 
-		claims, err := services.ParseJWT(tokenString, jwtPublicKey)
+		claims, err := services.VerifyAndParseJWT(tokenString, jwtPublicKey)
 		if err != nil {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid or expired token"})
 			c.Abort()
@@ -65,7 +65,7 @@ func AnonymousMiddleware(jwtPublicKey *rsa.PublicKey) gin.HandlerFunc {
 			return
 		}
 
-		_, err = services.ParseJWT(tokenString, jwtPublicKey)
+		_, err = services.VerifyAndParseJWT(tokenString, jwtPublicKey)
 		// If the token is not valid or it is not provided, continue
 		if err != nil {
 			c.Next()

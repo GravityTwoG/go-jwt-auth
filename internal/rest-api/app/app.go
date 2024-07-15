@@ -81,6 +81,8 @@ func Run() {
 		privateKey,
 		cfg.AccessTokenTTLsec,
 		cfg.RefreshTokenTTLsec,
+		cfg.GoogleClientID,
+		cfg.GoogleClientSecret,
 	)
 
 	api := r.Group("/api")

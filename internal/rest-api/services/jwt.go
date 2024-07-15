@@ -6,6 +6,7 @@ import (
 	"encoding/base64"
 	"encoding/pem"
 	"errors"
+	"fmt"
 	domainerrors "go-jwt-auth/internal/rest-api/domain-errors"
 	"go-jwt-auth/internal/rest-api/entities"
 	"time"
@@ -17,6 +18,10 @@ import (
 type TokenClaims struct {
 	ID    uint
 	Email string
+}
+
+type GoogleTokenClaims struct {
+	Email string `json:"email"`
 }
 
 func newJWT(
@@ -44,7 +49,7 @@ func newJWT(
 	return tokenString, nil
 }
 
-func ParseJWT(
+func VerifyAndParseJWT(
 	tokenString string, publicKey *rsa.PublicKey,
 ) (*TokenClaims, error) {
 	token, err := jwt.Parse(
@@ -109,4 +114,22 @@ func ParseRSAKey(
 	}
 
 	return privateKey, nil
+}
+
+// just parse the token payload
+func ParseGoogleJWT(tokenString string) (*GoogleTokenClaims, error) {
+	token, _, err := new(jwt.Parser).ParseUnverified(tokenString, jwt.MapClaims{})
+	if err != nil {
+		return nil, err
+	}
+
+	claims, ok := token.Claims.(jwt.MapClaims)
+
+	if !ok {
+		return nil, fmt.Errorf("invalid token")
+	}
+
+	return &GoogleTokenClaims{
+		Email: claims["email"].(string),
+	}, nil
 }

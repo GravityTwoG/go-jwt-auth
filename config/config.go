@@ -12,6 +12,9 @@ type Config struct {
 	AccessTokenTTLsec  int    `env:"ACCESS_TOKEN_TTL_SEC" env-required:"true"`
 	RefreshTokenTTLsec int    `env:"REFRESH_TOKEN_TTL_SEC" env-required:"true"`
 
+	GoogleClientID     string `env:"GOOGLE_CLIENT_ID" env-required:"true"`
+	GoogleClientSecret string `env:"GOOGLE_CLIENT_SECRET" env-required:"true"`
+
 	Port string `env:"PORT" env-default:"8080"`
 
 	AllowedOrigins stringList `env:"ALLOWED_ORIGINS"`

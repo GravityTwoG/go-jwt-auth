@@ -52,6 +52,11 @@ func NewAuthController(
 
 	auth.POST("/register", anonMiddleware, ac.register)
 	auth.POST("/login", anonMiddleware, ac.login)
+
+	auth.GET("/google/consent", anonMiddleware, ac.requestGoogleConsentURL)
+	auth.POST("/google/register-callback", anonMiddleware, ac.registerWithGoogle)
+	auth.POST("/google/login-callback", anonMiddleware, ac.loginWithGoogle)
+
 	auth.POST("/logout", authMiddleware, ac.logout)
 	auth.POST("/logout-all", authMiddleware, ac.logoutAll)
 
@@ -92,7 +97,7 @@ func (ac *authController) register(c *gin.Context) {
 
 // @Tags		Auth
 // @Summary	Login user
-// @Description Login user, also sets refresh token in cookie
+// @Description Logins user, also sets refresh token in cookie
 // @Accept		json
 // @Produce	json
 // @Param		body	body		dto.LoginDTO	true	"LoginDTO"
@@ -134,9 +139,112 @@ func (ac *authController) login(c *gin.Context) {
 	})
 }
 
+type GoogleRedirectDTO struct {
+	RedirectURL string `json:"redirectURL"`
+}
+
+// @Tags		Auth
+// @Summary	Request redirect URL for google consent screen
+// @Description Logins user, also sets refresh token in cookie
+// @Produce	json
+// @Param redirectURL query string true "redirectURL"
+// @Success	200		{object}	GoogleRedirectDTO
+// @Router		/auth/google/consent [get]
+func (ac *authController) requestGoogleConsentURL(c *gin.Context) {
+
+	redirectURL := c.Query("redirectURL")
+	if redirectURL == "" {
+		writeError(c, domainerrors.NewErrInvalidInput(
+			"INVALID_QUERY_PARAMS",
+			"redirectURL is required",
+		))
+		return
+	}
+
+	googleConsentURL := ac.authService.RequestGoogleConsentURL(
+		c,
+		redirectURL,
+	)
+
+	c.JSON(http.StatusOK, &GoogleRedirectDTO{
+		RedirectURL: googleConsentURL,
+	})
+}
+
+// @Tags		Auth
+// @Summary	Register new user with google
+// @Accept		json
+// @Produce	json
+// @Param		body	body		dto.RegisterWithGoogleDTO	true	"RegisterWithGoogleDTO"
+// @Success	201		{object}	dto.UserDTO
+// @Failure	400		{object}	dto.ErrorResponseDTO
+// @Router		/auth/google/register-callback [post]
+func (ac *authController) registerWithGoogle(c *gin.Context) {
+
+	registerWithGoogleDTO, err := ginutils.DecodeJSON[*dto.RegisterWithGoogleDTO](c)
+	if err != nil {
+		writeError(c, domainerrors.NewErrInvalidInput(
+			"INVALID_BODY",
+			err.Error(),
+		))
+		return
+	}
+
+	user, derr := ac.authService.RegisterWithGoogle(c, registerWithGoogleDTO)
+	if derr != nil {
+		writeError(c, derr)
+		return
+	}
+
+	c.JSON(http.StatusCreated, dto.UserFromEntity(user))
+}
+
+// @Tags		Auth
+// @Summary	Login user with google
+// @Description Logins user, also sets refresh token in cookie
+// @Accept		json
+// @Produce	json
+// @Param		body	body		dto.LoginWithGoogleDTO	true	"LoginWithGoogleDTO"
+// @Success	200		{object}	dto.LoginResponseDTO
+// @Failure	400		{object}	dto.ErrorResponseDTO
+// @Failure	401		{object}	dto.ErrorResponseDTO
+// @Router		/auth/google/login-callback [post]
+func (ac *authController) loginWithGoogle(c *gin.Context) {
+	ip := c.ClientIP()
+	userAgent := c.GetHeader("User-Agent")
+
+	loginWithGoogleDTO, err := ginutils.DecodeJSON[*dto.LoginWithGoogleDTO](c)
+	if err != nil {
+		writeError(c, domainerrors.NewErrInvalidInput(
+			"INVALID_BODY",
+			err.Error(),
+		))
+		return
+	}
+
+	user, tokens, derr := ac.authService.LoginWithGoogle(
+		c,
+		ip,
+		userAgent,
+		loginWithGoogleDTO,
+	)
+	if derr != nil {
+		writeError(c, derr)
+		return
+	}
+
+	setRefreshTokenCookie(c, &tokens.RefreshToken, ac.domain, ac.path)
+
+	c.JSON(http.StatusOK, &dto.LoginResponseDTO{
+		AccessToken:  tokens.AccessToken,
+		RefreshToken: tokens.RefreshToken.GetToken(),
+		User:         *dto.UserFromEntity(user),
+	})
+}
+
 // @Tags		Auth
 // @Summary	Refresh tokens
-// @Description Refresh tokens, also sets new refresh token in cookie
+// @Description Refreshes tokens, also sets new refresh token in cookie
 // @Security	ApiKeyAuth
 // @Accept		json
 // @Produce	json

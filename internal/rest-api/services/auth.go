@@ -3,13 +3,21 @@ package services
 import (
 	"context"
 	"crypto/rsa"
+	"encoding/json"
+	"fmt"
 	domainerrors "go-jwt-auth/internal/rest-api/domain-errors"
 	"go-jwt-auth/internal/rest-api/dto"
 	"go-jwt-auth/internal/rest-api/entities"
+	"io"
 	"log"
+	"net/http"
+	"net/url"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/avito-tech/go-transaction-manager/trm/v2/manager"
+	"github.com/google/uuid"
 )
 
 const InvalidRefreshToken = "INVALID_REFRESH_TOKEN"
@@ -78,6 +86,23 @@ type AuthService interface {
 		userAgent string,
 	) (*entities.User, *Tokens, domainerrors.ErrDomain)
 
+	RegisterWithGoogle(
+		ctx context.Context,
+		dto *dto.RegisterWithGoogleDTO,
+	) (*entities.User, domainerrors.ErrDomain)
+
+	RequestGoogleConsentURL(
+		ctx context.Context,
+		redirectURL string,
+	) string
+
+	LoginWithGoogle(
+		ctx context.Context,
+		ip string,
+		userAgent string,
+		dto *dto.LoginWithGoogleDTO,
+	) (*entities.User, *Tokens, domainerrors.ErrDomain)
+
 	RefreshTokens(
 		ctx context.Context,
 		dto *RefreshTokensDTO,
@@ -121,6 +146,9 @@ type authService struct {
 	jwtPublicKey       *rsa.PublicKey
 	accessTokenTTLsec  int
 	refreshTokenTTLsec int
+
+	googleClientID     string
+	googleClientSecret string
 }
 
 func NewAuthService(
@@ -130,6 +158,8 @@ func NewAuthService(
 	jwtPrivateKey *rsa.PrivateKey,
 	jwtAccessTTL int,
 	refreshTokenTTL int,
+	googleClientID string,
+	googleClientSecret string,
 ) AuthService {
 
 	jwtPrivateKey.Public()
@@ -145,6 +175,9 @@ func NewAuthService(
 		jwtPublicKey:       &jwtPrivateKey.PublicKey,
 		accessTokenTTLsec:  jwtAccessTTL,
 		refreshTokenTTLsec: refreshTokenTTL,
+
+		googleClientID:     googleClientID,
+		googleClientSecret: googleClientSecret,
 	}
 }
 
@@ -168,13 +201,34 @@ func (s *authService) Login(
 		return nil, nil, err
 	}
 
+	tokens, err := s.createTokensPair(
+		ctx,
+		user,
+		ip,
+		userAgent,
+		loginDTO.FingerPrint,
+	)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return user, tokens, nil
+}
+
+func (s *authService) createTokensPair(
+	ctx context.Context,
+	user *entities.User,
+	ip string,
+	userAgent string,
+	fingerPrint string,
+) (*Tokens, domainerrors.ErrDomain) {
 	accessToken, err := newJWT(
 		user,
 		s.accessTokenTTLsec,
 		s.jwtPrivateKey,
 	)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	refreshToken, err := newJWT(
@@ -183,7 +237,7 @@ func (s *authService) Login(
 		s.jwtPrivateKey,
 	)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	refreshTokenEntity := entities.NewRefreshToken(
@@ -192,18 +246,164 @@ func (s *authService) Login(
 		s.refreshTokenTTLsec,
 		ip,
 		userAgent,
-		loginDTO.FingerPrint,
+		fingerPrint,
 	)
 
 	err = s.refreshTokenRepository.Create(ctx, refreshTokenEntity)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
-	return user, &Tokens{
+	return &Tokens{
 		AccessToken:  accessToken,
 		RefreshToken: *refreshTokenEntity,
 	}, nil
+}
+
+func (s *authService) RegisterWithGoogle(
+	ctx context.Context,
+	registerWithGoogleDTO *dto.RegisterWithGoogleDTO,
+) (*entities.User, domainerrors.ErrDomain) {
+	email, err := s.fetchGoogleUserEmail(
+		ctx,
+		registerWithGoogleDTO.Code,
+		registerWithGoogleDTO.RedirectURL,
+	)
+
+	if err != nil {
+		return nil, err
+	}
+
+	password := uuid.New().String()
+
+	registerDTO := &dto.RegisterDTO{
+		Email:     email,
+		Password:  password,
+		Password2: password,
+	}
+
+	return s.userService.Register(ctx, registerDTO)
+}
+
+func (s *authService) RequestGoogleConsentURL(
+	ctx context.Context,
+	redirectURL string,
+) string {
+	// https://developers.google.com/identity/protocols/oauth2/web-server#httprest
+	endpoint := "https://accounts.google.com/o/oauth2/v2/auth"
+
+	responseType := "code"
+
+	// https://developers.google.com/identity/protocols/oauth2/scopes#oauth2
+	scope := "https://www.googleapis.com/auth/userinfo.email"
+
+	return fmt.Sprintf(
+		"%s?client_id=%s&redirect_uri=%s&response_type=%s&scope=%s",
+		endpoint,
+		s.googleClientID,
+		redirectURL,
+		responseType,
+		scope,
+	)
+}
+
+func (s *authService) LoginWithGoogle(
+	ctx context.Context,
+	ip string,
+	userAgent string,
+	dto *dto.LoginWithGoogleDTO,
+) (*entities.User, *Tokens, domainerrors.ErrDomain) {
+
+	email, err := s.fetchGoogleUserEmail(
+		ctx,
+		dto.Code,
+		dto.RedirectURL,
+	)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	user, err := s.userService.GetByEmail(ctx, email)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	tokens, err := s.createTokensPair(
+		ctx,
+		user,
+		ip,
+		userAgent,
+		dto.FingerPrint,
+	)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return user, tokens, nil
+}
+
+func (s *authService) fetchGoogleUserEmail(
+	ctx context.Context,
+	code string,
+	redirectURL string,
+) (string, domainerrors.ErrDomain) {
+	endpoint := "https://www.googleapis.com/oauth2/v4/token"
+
+	client := &http.Client{}
+
+	form := url.Values{}
+	form.Add("code", code)
+	form.Add("client_id", s.googleClientID)
+	form.Add("client_secret", s.googleClientSecret)
+	form.Add("redirect_uri", redirectURL)
+	form.Add("grant_type", "authorization_code")
+
+	req, err := http.NewRequestWithContext(
+		ctx, "POST", endpoint,
+		strings.NewReader(form.Encode()),
+	)
+	if err != nil {
+		return "", domainerrors.NewErrUnknown(err)
+	}
+
+	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
+	req.Header.Add("Content-Length", strconv.Itoa(len(form.Encode())))
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return "", domainerrors.NewErrUnknown(err)
+	}
+
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return "", domainerrors.NewErrUnknown(
+			fmt.Errorf("unexpected status code: %d", resp.StatusCode),
+		)
+	}
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", domainerrors.NewErrUnknown(err)
+	}
+
+	fmt.Println(string(body))
+
+	var dto struct {
+		IDToken string `json:"id_token"`
+	}
+
+	err = json.Unmarshal(body, &dto)
+	if err != nil {
+		return "", domainerrors.NewErrUnknown(err)
+	}
+
+	claims, err := ParseGoogleJWT(dto.IDToken)
+	if err != nil {
+		return "", domainerrors.NewErrUnknown(err)
+	}
+
+	return claims.Email, nil
 }
 
 func (s *authService) RefreshTokens(
@@ -211,7 +411,7 @@ func (s *authService) RefreshTokens(
 	dto *RefreshTokensDTO,
 ) (*Tokens, domainerrors.ErrDomain) {
 
-	tokenClaims, jwtErr := ParseJWT(dto.OldToken, s.jwtPublicKey)
+	tokenClaims, jwtErr := VerifyAndParseJWT(dto.OldToken, s.jwtPublicKey)
 	if jwtErr != nil {
 		return nil, domainerrors.NewErrInvalidInput(
 			InvalidRefreshToken,

@@ -43,6 +43,19 @@ definitions:
       user:
         $ref: '#/definitions/go-jwt-auth_internal_rest-api_dto.UserDTO'
     type: object
+  go-jwt-auth_internal_rest-api_dto.LoginWithGoogleDTO:
+    properties:
+      code:
+        type: string
+      fingerPrint:
+        type: string
+      redirectURL:
+        type: string
+    required:
+    - code
+    - fingerPrint
+    - redirectURL
+    type: object
   go-jwt-auth_internal_rest-api_dto.RefreshTokensDTO:
     properties:
       fingerPrint:
@@ -70,6 +83,16 @@ definitions:
     - password
     - password2
     type: object
+  go-jwt-auth_internal_rest-api_dto.RegisterWithGoogleDTO:
+    properties:
+      code:
+        type: string
+      redirectURL:
+        type: string
+    required:
+    - code
+    - redirectURL
+    type: object
   go-jwt-auth_internal_rest-api_dto.SessionDTO:
     properties:
       createdAt:
@@ -94,6 +117,11 @@ definitions:
         type: string
       id:
         type: integer
+    type: object
+  internal_rest-api_controllers.GoogleRedirectDTO:
+    properties:
+      redirectURL:
+        type: string
     type: object
 host: localhost:8080
 info:
@@ -133,11 +161,85 @@ paths:
       summary: Get tokens config
       tags:
       - Auth
+  /auth/google/consent:
+    get:
+      description: Logins user, also sets refresh token in cookie
+      parameters:
+      - description: redirectURL
+        in: query
+        name: redirectURL
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_rest-api_controllers.GoogleRedirectDTO'
+      summary: Request redirect URL for google consent screen
+      tags:
+      - Auth
+  /auth/google/login-callback:
+    post:
+      consumes:
+      - application/json
+      description: Logins user, also sets refresh token in cookie
+      parameters:
+      - description: LoginWithGoogleDTO
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/go-jwt-auth_internal_rest-api_dto.LoginWithGoogleDTO'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/go-jwt-auth_internal_rest-api_dto.LoginResponseDTO'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/go-jwt-auth_internal_rest-api_dto.ErrorResponseDTO'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/go-jwt-auth_internal_rest-api_dto.ErrorResponseDTO'
+      summary: Login user with google
+      tags:
+      - Auth
+  /auth/google/register-callback:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: RegisterWithGoogleDTO
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/go-jwt-auth_internal_rest-api_dto.RegisterWithGoogleDTO'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/go-jwt-auth_internal_rest-api_dto.UserDTO'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/go-jwt-auth_internal_rest-api_dto.ErrorResponseDTO'
+      summary: Register new user with google
+      tags:
+      - Auth
   /auth/login:
     post:
       consumes:
       - application/json
-      description: Login user, also sets refresh token in cookie
+      description: Logins user, also sets refresh token in cookie
       parameters:
       - description: LoginDTO
         in: body

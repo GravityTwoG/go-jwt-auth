@@ -5,3 +5,8 @@ type RegisterDTO struct {
 	Password  string `json:"password" binding:"required"`
 	Password2 string `json:"password2" binding:"required"`
 }
+
+type RegisterWithGoogleDTO struct {
+	Code        string `json:"code" binding:"required"`
+	RedirectURL string `json:"redirectURL" binding:"required"`
+}

@@ -295,6 +295,8 @@ func TestAuthService_Login(t *testing.T) {
 				privateKey,
 				3600,
 				86400,
+				"",
+				"",
 			)
 
 			user, tokens, err := authService.Login(context.Background(), tt.loginDTO, tt.ip, tt.userAgent)
