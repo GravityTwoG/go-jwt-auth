@@ -325,6 +325,7 @@ func setRefreshTokenCookie(
 	domain string,
 	path string,
 ) {
+	c.SetSameSite(http.SameSiteNoneMode)
 	c.SetCookie(
 		cookieName, refreshToken.GetToken(),
 		refreshToken.GetTTLSec(), path, domain, true, true,
@@ -337,6 +338,7 @@ func resetCookie(
 	domain string,
 	path string,
 ) {
+	c.SetSameSite(http.SameSiteNoneMode)
 	c.SetCookie(name, "", -1, path, domain, true, true)
 }
 
