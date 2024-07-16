@@ -4,7 +4,6 @@ import (
 	"context"
 	"crypto/rand"
 	"crypto/rsa"
-	"log"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -169,15 +168,15 @@ func (m *mockedRefreshTokenRepository) DeleteExpired(
 }
 
 func TestAuthService_Register(t *testing.T) {
-	type registerTest struct {
-		name           string
-		registerDTO    *dto.RegisterDTO
-		mockUserCreate func(*mock.Mock)
-		expectedUser   *entities.User
-		expectedErr    domainerrors.ErrDomain
-	}
-
-	tests := []registerTest{
+	tests := []struct {
+		name            string
+		registerDTO     *dto.RegisterDTO
+		mockUserCreate  func(*mock.Mock)
+		mockTokenCreate func(*mock.Mock)
+		expectedUser    *entities.User
+		expectedTokens  *services.Tokens
+		expectedErr     domainerrors.ErrDomain
+	}{
 		{
 			name: "Successful registration",
 			registerDTO: &dto.RegisterDTO{
@@ -188,11 +187,14 @@ func TestAuthService_Register(t *testing.T) {
 			mockUserCreate: func(m *mock.Mock) {
 				m.On("Create", mock.Anything, mock.AnythingOfType("*entities.User")).Return(nil)
 			},
-			expectedUser: entities.UserFromDB(
-				1,
-				"test@example.com",
-				"password123hash",
-			),
+			mockTokenCreate: func(m *mock.Mock) {
+				m.On("Create", mock.Anything, mock.AnythingOfType("*entities.RefreshToken")).Return(nil)
+			},
+			expectedUser: &entities.User{},
+			expectedTokens: &services.Tokens{
+				AccessToken:  "mocked_access_token",
+				RefreshToken: entities.RefreshToken{},
+			},
 			expectedErr: nil,
 		},
 		{
@@ -205,7 +207,11 @@ func TestAuthService_Register(t *testing.T) {
 			mockUserCreate: func(m *mock.Mock) {
 				// No mock call expected
 			},
-			expectedUser: nil,
+			mockTokenCreate: func(m *mock.Mock) {
+				// No mock call expected
+			},
+			expectedUser:   nil,
+			expectedTokens: nil,
 			expectedErr: domainerrors.NewErrInvalidInput(
 				"PASSWORDS_DONT_MATCH",
 				"passwords don't match",
@@ -223,7 +229,11 @@ func TestAuthService_Register(t *testing.T) {
 					domainerrors.NewErrEntityAlreadyExists("", ""),
 				)
 			},
-			expectedUser: nil,
+			mockTokenCreate: func(m *mock.Mock) {
+				// No mock call expected
+			},
+			expectedUser:   nil,
+			expectedTokens: nil,
 			expectedErr: domainerrors.NewErrEntityAlreadyExists(
 				"EMAIL_ALREADY_EXISTS",
 				"email already exists",
@@ -241,8 +251,12 @@ func TestAuthService_Register(t *testing.T) {
 					domainerrors.NewErrUnknown(nil),
 				)
 			},
-			expectedUser: nil,
-			expectedErr:  domainerrors.NewErrUnknown(nil),
+			mockTokenCreate: func(m *mock.Mock) {
+				// No mock call expected
+			},
+			expectedUser:   nil,
+			expectedTokens: nil,
+			expectedErr:    domainerrors.NewErrUnknown(nil),
 		},
 	}
 
@@ -254,11 +268,12 @@ func TestAuthService_Register(t *testing.T) {
 			if tt.mockUserCreate != nil {
 				tt.mockUserCreate(&mockUserRepo.Mock)
 			}
+			if tt.mockTokenCreate != nil {
+				tt.mockTokenCreate(&mockRefreshTokenRepo.Mock)
+			}
 
 			privateKey, err := rsa.GenerateKey(rand.Reader, 2048)
-			if err != nil {
-				log.Fatal(err)
-			}
+			assert.NoError(t, err)
 
 			authService := services.NewAuthService(
 				nil,
@@ -271,17 +286,28 @@ func TestAuthService_Register(t *testing.T) {
 				"",
 			)
 
-			user, err := authService.Register(context.Background(), tt.registerDTO)
+			user, tokens, err := authService.Register(
+				context.Background(),
+				tt.registerDTO,
+				"127.0.0.1",
+				"Mozilla",
+			)
 
 			if tt.expectedErr != nil {
 				assert.Error(t, err)
 				assert.Equal(t, tt.expectedErr, err)
+				assert.Nil(t, user)
+				assert.Nil(t, tokens)
 			} else {
 				assert.NoError(t, err)
 				assert.NotNil(t, user)
+				assert.NotNil(t, tokens)
+				assert.NotEmpty(t, tokens.AccessToken)
+				assert.NotEmpty(t, tokens.RefreshToken.GetToken())
 			}
 
 			mockUserRepo.AssertExpectations(t)
+			mockRefreshTokenRepo.AssertExpectations(t)
 		})
 	}
 }
@@ -390,9 +416,7 @@ func TestAuthService_Login(t *testing.T) {
 			}
 
 			privateKey, err := rsa.GenerateKey(rand.Reader, 2048)
-			if err != nil {
-				log.Fatal(err)
-			}
+			assert.NoError(t, err)
 
 			authService := services.NewAuthService(
 				nil,

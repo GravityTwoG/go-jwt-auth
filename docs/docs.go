@@ -150,7 +150,7 @@ const docTemplate = `{
                 "tags": [
                     "Auth"
                 ],
-                "summary": "Register new user with google",
+                "summary": "Registers new user with google, also sets refresh token in cookie",
                 "parameters": [
                     {
                         "description": "RegisterWithGoogleDTO",
@@ -166,7 +166,7 @@ const docTemplate = `{
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "$ref": "#/definitions/go-jwt-auth_internal_rest-api_dto.UserDTO"
+                            "$ref": "#/definitions/go-jwt-auth_internal_rest-api_dto.RegisterResponseDTO"
                         }
                     },
                     "400": {
@@ -303,7 +303,7 @@ const docTemplate = `{
                         "ApiKeyAuth": []
                     }
                 ],
-                "description": "Refresh tokens, also sets new refresh token in cookie",
+                "description": "Refreshes tokens, also sets new refresh token in cookie",
                 "consumes": [
                     "application/json"
                 ],
@@ -352,7 +352,7 @@ const docTemplate = `{
                 "tags": [
                     "Auth"
                 ],
-                "summary": "Register new user",
+                "summary": "Registers new user, also sets refresh token in cookie",
                 "parameters": [
                     {
                         "description": "RegisterDTO",
@@ -368,7 +368,7 @@ const docTemplate = `{
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "$ref": "#/definitions/go-jwt-auth_internal_rest-api_dto.UserDTO"
+                            "$ref": "#/definitions/go-jwt-auth_internal_rest-api_dto.RegisterResponseDTO"
                         }
                     },
                     "400": {
@@ -505,6 +505,20 @@ const docTemplate = `{
                 },
                 "password2": {
                     "type": "string"
+                }
+            }
+        },
+        "go-jwt-auth_internal_rest-api_dto.RegisterResponseDTO": {
+            "type": "object",
+            "properties": {
+                "accessToken": {
+                    "type": "string"
+                },
+                "refreshToken": {
+                    "type": "string"
+                },
+                "user": {
+                    "$ref": "#/definitions/go-jwt-auth_internal_rest-api_dto.UserDTO"
                 }
             }
         },

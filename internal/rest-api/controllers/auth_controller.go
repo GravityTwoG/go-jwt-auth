@@ -68,14 +68,16 @@ func NewAuthController(
 }
 
 // @Tags		Auth
-// @Summary	Register new user
+// @Summary	Registers new user, also sets refresh token in cookie
 // @Accept		json
 // @Produce	json
 // @Param		body	body		dto.RegisterDTO	true	"RegisterDTO"
-// @Success	201		{object}	dto.UserDTO
+// @Success	201		{object}	dto.RegisterResponseDTO
 // @Failure	400		{object}	dto.ErrorResponseDTO
 // @Router		/auth/register [post]
 func (ac *authController) register(c *gin.Context) {
+	ip := c.ClientIP()
+	userAgent := c.GetHeader("User-Agent")
 
 	registerDTO, err := ginutils.DecodeJSON[*dto.RegisterDTO](c)
 	if err != nil {
@@ -86,13 +88,24 @@ func (ac *authController) register(c *gin.Context) {
 		return
 	}
 
-	user, derr := ac.authService.Register(c, registerDTO)
+	user, tokens, derr := ac.authService.Register(
+		c,
+		registerDTO,
+		ip,
+		userAgent,
+	)
 	if derr != nil {
 		writeError(c, derr)
 		return
 	}
 
-	c.JSON(http.StatusCreated, dto.UserFromEntity(user))
+	setRefreshTokenCookie(c, &tokens.RefreshToken, ac.domain, ac.path)
+
+	c.JSON(http.StatusCreated, &dto.RegisterResponseDTO{
+		AccessToken:  tokens.AccessToken,
+		RefreshToken: tokens.RefreshToken.GetToken(),
+		User:         *dto.UserFromEntity(user),
+	})
 }
 
 // @Tags		Auth
@@ -172,14 +185,16 @@ func (ac *authController) requestGoogleConsentURL(c *gin.Context) {
 }
 
 // @Tags		Auth
-// @Summary	Register new user with google
+// @Summary	Registers new user with google, also sets refresh token in cookie
 // @Accept		json
 // @Produce	json
 // @Param		body	body		dto.RegisterWithGoogleDTO	true	"RegisterWithGoogleDTO"
-// @Success	201		{object}	dto.UserDTO
+// @Success	201		{object}	dto.RegisterResponseDTO
 // @Failure	400		{object}	dto.ErrorResponseDTO
 // @Router		/auth/google/register-callback [post]
 func (ac *authController) registerWithGoogle(c *gin.Context) {
+	ip := c.ClientIP()
+	userAgent := c.GetHeader("User-Agent")
 
 	registerWithGoogleDTO, err := ginutils.DecodeJSON[*dto.RegisterWithGoogleDTO](c)
 	if err != nil {
@@ -190,13 +205,24 @@ func (ac *authController) registerWithGoogle(c *gin.Context) {
 		return
 	}
 
-	user, derr := ac.authService.RegisterWithGoogle(c, registerWithGoogleDTO)
+	user, tokens, derr := ac.authService.RegisterWithGoogle(
+		c,
+		registerWithGoogleDTO,
+		ip,
+		userAgent,
+	)
 	if derr != nil {
 		writeError(c, derr)
 		return
 	}
 
-	c.JSON(http.StatusCreated, dto.UserFromEntity(user))
+	setRefreshTokenCookie(c, &tokens.RefreshToken, ac.domain, ac.path)
+
+	c.JSON(http.StatusCreated, &dto.RegisterResponseDTO{
+		AccessToken:  tokens.AccessToken,
+		RefreshToken: tokens.RefreshToken.GetToken(),
+		User:         *dto.UserFromEntity(user),
+	})
 }
 
 // @Tags		Auth

@@ -83,6 +83,15 @@ definitions:
     - password
     - password2
     type: object
+  go-jwt-auth_internal_rest-api_dto.RegisterResponseDTO:
+    properties:
+      accessToken:
+        type: string
+      refreshToken:
+        type: string
+      user:
+        $ref: '#/definitions/go-jwt-auth_internal_rest-api_dto.UserDTO'
+    type: object
   go-jwt-auth_internal_rest-api_dto.RegisterWithGoogleDTO:
     properties:
       code:
@@ -227,12 +236,12 @@ paths:
         "201":
           description: Created
           schema:
-            $ref: '#/definitions/go-jwt-auth_internal_rest-api_dto.UserDTO'
+            $ref: '#/definitions/go-jwt-auth_internal_rest-api_dto.RegisterResponseDTO'
         "400":
           description: Bad Request
           schema:
             $ref: '#/definitions/go-jwt-auth_internal_rest-api_dto.ErrorResponseDTO'
-      summary: Register new user with google
+      summary: Registers new user with google, also sets refresh token in cookie
       tags:
       - Auth
   /auth/login:
@@ -311,7 +320,7 @@ paths:
     post:
       consumes:
       - application/json
-      description: Refresh tokens, also sets new refresh token in cookie
+      description: Refreshes tokens, also sets new refresh token in cookie
       parameters:
       - description: RefreshTokensDTO
         in: body
@@ -352,12 +361,12 @@ paths:
         "201":
           description: Created
           schema:
-            $ref: '#/definitions/go-jwt-auth_internal_rest-api_dto.UserDTO'
+            $ref: '#/definitions/go-jwt-auth_internal_rest-api_dto.RegisterResponseDTO'
         "400":
           description: Bad Request
           schema:
             $ref: '#/definitions/go-jwt-auth_internal_rest-api_dto.ErrorResponseDTO'
-      summary: Register new user
+      summary: Registers new user, also sets refresh token in cookie
       tags:
       - Auth
 securityDefinitions:

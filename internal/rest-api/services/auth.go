@@ -111,7 +111,9 @@ type AuthService interface {
 	Register(
 		ctx context.Context,
 		dto *dto.RegisterDTO,
-	) (*entities.User, domainerrors.ErrDomain)
+		ip string,
+		userAgent string,
+	) (*entities.User, *Tokens, domainerrors.ErrDomain)
 
 	Login(
 		ctx context.Context,
@@ -123,7 +125,9 @@ type AuthService interface {
 	RegisterWithGoogle(
 		ctx context.Context,
 		dto *dto.RegisterWithGoogleDTO,
-	) (*entities.User, domainerrors.ErrDomain)
+		ip string,
+		userAgent string,
+	) (*entities.User, *Tokens, domainerrors.ErrDomain)
 
 	RequestGoogleConsentURL(
 		ctx context.Context,
@@ -218,10 +222,12 @@ func NewAuthService(
 func (s *authService) Register(
 	ctx context.Context,
 	registerDTO *dto.RegisterDTO,
-) (*entities.User, domainerrors.ErrDomain) {
+	ip string,
+	userAgent string,
+) (*entities.User, *Tokens, domainerrors.ErrDomain) {
 
 	if registerDTO.Password != registerDTO.Password2 {
-		return nil, ErrPasswordsDontMatch
+		return nil, nil, ErrPasswordsDontMatch
 	}
 
 	user, err := entities.NewUser(
@@ -229,19 +235,30 @@ func (s *authService) Register(
 		registerDTO.Password,
 	)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	err = s.userRepo.Create(ctx, user)
 	if err != nil {
 		if err.Kind() == domainerrors.EntityAlreadyExists {
-			return nil, ErrEmailAlreadyExists
+			return nil, nil, ErrEmailAlreadyExists
 		}
 
-		return nil, err
+		return nil, nil, err
 	}
 
-	return user, nil
+	tokens, err := s.createTokensPair(
+		ctx,
+		user,
+		ip,
+		userAgent,
+		registerDTO.FingerPrint,
+	)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return user, tokens, nil
 }
 
 func (s *authService) Login(
@@ -326,7 +343,9 @@ func (s *authService) createTokensPair(
 func (s *authService) RegisterWithGoogle(
 	ctx context.Context,
 	registerWithGoogleDTO *dto.RegisterWithGoogleDTO,
-) (*entities.User, domainerrors.ErrDomain) {
+	ip string,
+	userAgent string,
+) (*entities.User, *Tokens, domainerrors.ErrDomain) {
 	email, err := s.fetchGoogleUserEmail(
 		ctx,
 		registerWithGoogleDTO.Code,
@@ -334,7 +353,7 @@ func (s *authService) RegisterWithGoogle(
 	)
 
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	password := uuid.New().String()
@@ -345,7 +364,7 @@ func (s *authService) RegisterWithGoogle(
 		Password2: password,
 	}
 
-	return s.Register(ctx, registerDTO)
+	return s.Register(ctx, registerDTO, ip, userAgent)
 }
 
 func (s *authService) RequestGoogleConsentURL(
