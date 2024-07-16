@@ -73,10 +73,9 @@ func Run() {
 		log.Fatal("Error parsing RSA key: ", err)
 	}
 
-	userService := services.NewUserService(userRepo)
 	authService := services.NewAuthService(
 		trManager,
-		userService,
+		userRepo,
 		refreshTokenRepo,
 		privateKey,
 		cfg.AccessTokenTTLsec,

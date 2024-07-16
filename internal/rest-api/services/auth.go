@@ -26,6 +26,23 @@ const RefreshTokenNotFound = "REFRESH_TOKEN_NOT_FOUND"
 const InvalidUserAgent = "INVALID_USER_AGENT"
 const InvalidFingerPrint = "INVALID_FINGER_PRINT"
 
+var (
+	ErrEmailAlreadyExists = domainerrors.NewErrEntityAlreadyExists(
+		"EMAIL_ALREADY_EXISTS",
+		"email already exists",
+	)
+
+	ErrPasswordsDontMatch = domainerrors.NewErrInvalidInput(
+		"PASSWORDS_DONT_MATCH",
+		"passwords don't match",
+	)
+
+	ErrIncorrectEmailOrPassword = domainerrors.NewErrInvalidInput(
+		"INCORRECT_EMAIL_OR_PASSWORD",
+		"incorrect email or password",
+	)
+)
+
 type Tokens struct {
 	AccessToken  string
 	RefreshToken entities.RefreshToken
@@ -36,6 +53,23 @@ type RefreshTokensDTO struct {
 	IP          string
 	UserAgent   string
 	FingerPrint string
+}
+
+type UserRepository interface {
+	Create(
+		ctx context.Context,
+		user *entities.User,
+	) domainerrors.ErrDomain
+
+	GetByID(
+		ctx context.Context,
+		id uint,
+	) (*entities.User, domainerrors.ErrDomain)
+
+	GetByEmail(
+		ctx context.Context,
+		email string,
+	) (*entities.User, domainerrors.ErrDomain)
 }
 
 type RefreshTokenRepository interface {
@@ -138,7 +172,7 @@ type AuthService interface {
 type authService struct {
 	trManager *manager.Manager
 
-	userService UserService
+	userRepo UserRepository
 
 	refreshTokenRepository RefreshTokenRepository
 
@@ -153,7 +187,7 @@ type authService struct {
 
 func NewAuthService(
 	trManager *manager.Manager,
-	userService UserService,
+	userRepo UserRepository,
 	refreshTokenRepository RefreshTokenRepository,
 	jwtPrivateKey *rsa.PrivateKey,
 	jwtAccessTTL int,
@@ -167,7 +201,7 @@ func NewAuthService(
 	return &authService{
 		trManager: trManager,
 
-		userService: userService,
+		userRepo: userRepo,
 
 		refreshTokenRepository: refreshTokenRepository,
 
@@ -186,7 +220,28 @@ func (s *authService) Register(
 	registerDTO *dto.RegisterDTO,
 ) (*entities.User, domainerrors.ErrDomain) {
 
-	return s.userService.Register(ctx, registerDTO)
+	if registerDTO.Password != registerDTO.Password2 {
+		return nil, ErrPasswordsDontMatch
+	}
+
+	user, err := entities.NewUser(
+		registerDTO.Email,
+		registerDTO.Password,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	err = s.userRepo.Create(ctx, user)
+	if err != nil {
+		if err.Kind() == domainerrors.EntityAlreadyExists {
+			return nil, ErrEmailAlreadyExists
+		}
+
+		return nil, err
+	}
+
+	return user, nil
 }
 
 func (s *authService) Login(
@@ -196,9 +251,17 @@ func (s *authService) Login(
 	userAgent string,
 ) (*entities.User, *Tokens, domainerrors.ErrDomain) {
 
-	user, err := s.userService.Login(ctx, loginDTO)
+	user, err := s.userRepo.GetByEmail(ctx, loginDTO.Email)
 	if err != nil {
+		if err.Kind() == domainerrors.EntityNotFound {
+			return nil, nil, ErrIncorrectEmailOrPassword
+		}
+
 		return nil, nil, err
+	}
+
+	if !user.ComparePassword(loginDTO.Password) {
+		return nil, nil, ErrIncorrectEmailOrPassword
 	}
 
 	tokens, err := s.createTokensPair(
@@ -282,7 +345,7 @@ func (s *authService) RegisterWithGoogle(
 		Password2: password,
 	}
 
-	return s.userService.Register(ctx, registerDTO)
+	return s.Register(ctx, registerDTO)
 }
 
 func (s *authService) RequestGoogleConsentURL(
@@ -323,7 +386,7 @@ func (s *authService) LoginWithGoogle(
 		return nil, nil, err
 	}
 
-	user, err := s.userService.GetByEmail(ctx, email)
+	user, err := s.userRepo.GetByEmail(ctx, email)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -527,7 +590,7 @@ func (s *authService) GetUserByID(
 	id uint,
 ) (*entities.User, domainerrors.ErrDomain) {
 
-	return s.userService.GetByID(ctx, id)
+	return s.userRepo.GetByID(ctx, id)
 }
 
 func (s *authService) GetActiveSessions(
