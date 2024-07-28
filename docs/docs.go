@@ -64,120 +64,6 @@ const docTemplate = `{
                 }
             }
         },
-        "/auth/google/consent": {
-            "get": {
-                "description": "Logins user, also sets refresh token in cookie",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Auth"
-                ],
-                "summary": "Request redirect URL for google consent screen",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "redirectURL",
-                        "name": "redirectURL",
-                        "in": "query",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/internal_rest-api_controllers.GoogleRedirectDTO"
-                        }
-                    }
-                }
-            }
-        },
-        "/auth/google/login-callback": {
-            "post": {
-                "description": "Logins user, also sets refresh token in cookie",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Auth"
-                ],
-                "summary": "Login user with google",
-                "parameters": [
-                    {
-                        "description": "LoginWithGoogleDTO",
-                        "name": "body",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/go-jwt-auth_internal_rest-api_dto.LoginWithGoogleDTO"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/go-jwt-auth_internal_rest-api_dto.LoginResponseDTO"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/go-jwt-auth_internal_rest-api_dto.ErrorResponseDTO"
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "$ref": "#/definitions/go-jwt-auth_internal_rest-api_dto.ErrorResponseDTO"
-                        }
-                    }
-                }
-            }
-        },
-        "/auth/google/register-callback": {
-            "post": {
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Auth"
-                ],
-                "summary": "Registers new user with google, also sets refresh token in cookie",
-                "parameters": [
-                    {
-                        "description": "RegisterWithGoogleDTO",
-                        "name": "body",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/go-jwt-auth_internal_rest-api_dto.RegisterWithGoogleDTO"
-                        }
-                    }
-                ],
-                "responses": {
-                    "201": {
-                        "description": "Created",
-                        "schema": {
-                            "$ref": "#/definitions/go-jwt-auth_internal_rest-api_dto.RegisterResponseDTO"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/go-jwt-auth_internal_rest-api_dto.ErrorResponseDTO"
-                        }
-                    }
-                }
-            }
-        },
         "/auth/login": {
             "post": {
                 "description": "Logins user, also sets refresh token in cookie",
@@ -379,6 +265,120 @@ const docTemplate = `{
                     }
                 }
             }
+        },
+        "/auth/{provider}/consent": {
+            "get": {
+                "description": "Logins user, also sets refresh token in cookie",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "Request redirect URL for oauth provider consent screen",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "redirectURL",
+                        "name": "redirectURL",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/go-jwt-auth_internal_rest-api_dto.OAuthRedirectDTO"
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/{provider}/login-callback": {
+            "post": {
+                "description": "Logins user, also sets refresh token in cookie",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "Login user with oauth provider",
+                "parameters": [
+                    {
+                        "description": "LoginWithOAuthDTO",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/go-jwt-auth_internal_rest-api_dto.LoginWithOAuthDTO"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/go-jwt-auth_internal_rest-api_dto.LoginResponseDTO"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/go-jwt-auth_internal_rest-api_dto.ErrorResponseDTO"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/go-jwt-auth_internal_rest-api_dto.ErrorResponseDTO"
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/{provider}/register-callback": {
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "Registers new user with oauth provider, also sets refresh token in cookie",
+                "parameters": [
+                    {
+                        "description": "RegisterWithOAuthDTO",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/go-jwt-auth_internal_rest-api_dto.RegisterWithOAuthDTO"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/go-jwt-auth_internal_rest-api_dto.RegisterResponseDTO"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/go-jwt-auth_internal_rest-api_dto.ErrorResponseDTO"
+                        }
+                    }
+                }
+            }
         }
     },
     "definitions": {
@@ -448,7 +448,7 @@ const docTemplate = `{
                 }
             }
         },
-        "go-jwt-auth_internal_rest-api_dto.LoginWithGoogleDTO": {
+        "go-jwt-auth_internal_rest-api_dto.LoginWithOAuthDTO": {
             "type": "object",
             "required": [
                 "code",
@@ -462,6 +462,14 @@ const docTemplate = `{
                 "fingerPrint": {
                     "type": "string"
                 },
+                "redirectURL": {
+                    "type": "string"
+                }
+            }
+        },
+        "go-jwt-auth_internal_rest-api_dto.OAuthRedirectDTO": {
+            "type": "object",
+            "properties": {
                 "redirectURL": {
                     "type": "string"
                 }
@@ -493,11 +501,15 @@ const docTemplate = `{
             "type": "object",
             "required": [
                 "email",
+                "fingerPrint",
                 "password",
                 "password2"
             ],
             "properties": {
                 "email": {
+                    "type": "string"
+                },
+                "fingerPrint": {
                     "type": "string"
                 },
                 "password": {
@@ -522,14 +534,18 @@ const docTemplate = `{
                 }
             }
         },
-        "go-jwt-auth_internal_rest-api_dto.RegisterWithGoogleDTO": {
+        "go-jwt-auth_internal_rest-api_dto.RegisterWithOAuthDTO": {
             "type": "object",
             "required": [
                 "code",
+                "fingerPrint",
                 "redirectURL"
             ],
             "properties": {
                 "code": {
+                    "type": "string"
+                },
+                "fingerPrint": {
                     "type": "string"
                 },
                 "redirectURL": {
@@ -573,14 +589,6 @@ const docTemplate = `{
                 },
                 "id": {
                     "type": "integer"
-                }
-            }
-        },
-        "internal_rest-api_controllers.GoogleRedirectDTO": {
-            "type": "object",
-            "properties": {
-                "redirectURL": {
-                    "type": "string"
                 }
             }
         }

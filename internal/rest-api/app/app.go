@@ -11,6 +11,7 @@ import (
 	"go-jwt-auth/internal/rest-api/database"
 	"go-jwt-auth/internal/rest-api/repositories"
 	"go-jwt-auth/internal/rest-api/services"
+	"go-jwt-auth/internal/rest-api/services/oauth"
 
 	"github.com/MarceloPetrucio/go-scalar-api-reference"
 	trmgorm "github.com/avito-tech/go-transaction-manager/drivers/gorm/v2"
@@ -73,15 +74,23 @@ func Run() {
 		log.Fatal("Error parsing RSA key: ", err)
 	}
 
+	jwtService := services.NewJWTService(privateKey)
+
+	googleOAuthService := oauth.NewGoogleOAuthService(
+		cfg.GoogleClientID,
+		cfg.GoogleClientSecret,
+	)
+
 	authService := services.NewAuthService(
 		trManager,
 		userRepo,
 		refreshTokenRepo,
-		privateKey,
+		jwtService,
 		cfg.AccessTokenTTLsec,
 		cfg.RefreshTokenTTLsec,
-		cfg.GoogleClientID,
-		cfg.GoogleClientSecret,
+		map[string]oauth.OAuthService{
+			"google": googleOAuthService,
+		},
 	)
 
 	api := r.Group("/api")

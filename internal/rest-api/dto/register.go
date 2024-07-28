@@ -7,7 +7,11 @@ type RegisterDTO struct {
 	FingerPrint string `json:"fingerPrint" binding:"required"`
 }
 
-type RegisterWithGoogleDTO struct {
+type OAuthRedirectDTO struct {
+	RedirectURL string `json:"redirectURL"`
+}
+
+type RegisterWithOAuthDTO struct {
 	Code        string `json:"code" binding:"required"`
 	RedirectURL string `json:"redirectURL" binding:"required"`
 	FingerPrint string `json:"fingerPrint" binding:"required"`

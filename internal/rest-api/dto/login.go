@@ -6,7 +6,7 @@ type LoginDTO struct {
 	FingerPrint string `json:"fingerPrint" binding:"required"`
 }
 
-type LoginWithGoogleDTO struct {
+type LoginWithOAuthDTO struct {
 	Code        string `json:"code" binding:"required"`
 	FingerPrint string `json:"fingerPrint" binding:"required"`
 	RedirectURL string `json:"redirectURL" binding:"required"`

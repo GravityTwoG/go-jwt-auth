@@ -13,6 +13,7 @@ import (
 	"go-jwt-auth/internal/rest-api/dto"
 	"go-jwt-auth/internal/rest-api/entities"
 	"go-jwt-auth/internal/rest-api/services"
+	"go-jwt-auth/internal/rest-api/services/oauth"
 )
 
 type mockedUserRepository struct {
@@ -275,15 +276,20 @@ func TestAuthService_Register(t *testing.T) {
 			privateKey, err := rsa.GenerateKey(rand.Reader, 2048)
 			assert.NoError(t, err)
 
+			jwtService := services.NewJWTService(privateKey)
+
+			googleOAuthService := oauth.NewGoogleOAuthService("", "")
+
 			authService := services.NewAuthService(
 				nil,
 				mockUserRepo,
 				mockRefreshTokenRepo,
-				privateKey,
+				jwtService,
 				3600,
 				86400,
-				"",
-				"",
+				map[string]oauth.OAuthService{
+					"google": googleOAuthService,
+				},
 			)
 
 			user, tokens, err := authService.Register(
@@ -418,15 +424,20 @@ func TestAuthService_Login(t *testing.T) {
 			privateKey, err := rsa.GenerateKey(rand.Reader, 2048)
 			assert.NoError(t, err)
 
+			jwtService := services.NewJWTService(privateKey)
+
+			googleOAuthService := oauth.NewGoogleOAuthService("", "")
+
 			authService := services.NewAuthService(
 				nil,
 				mockUserRepo,
 				mockRefreshTokenRepository,
-				privateKey,
+				jwtService,
 				3600,
 				86400,
-				"",
-				"",
+				map[string]oauth.OAuthService{
+					"google": googleOAuthService,
+				},
 			)
 
 			user, tokens, err := authService.Login(context.Background(), tt.loginDTO, tt.ip, tt.userAgent)
