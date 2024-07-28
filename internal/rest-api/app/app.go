@@ -109,6 +109,8 @@ func Run() {
 
 	// Swagger docs
 	docs.SwaggerInfo.Host = cfg.Domain
+	docs.SwaggerInfo.Schemes = []string{"https", "http"}
+	docs.SwaggerInfo.BasePath = "/api"
 	// read swagger.json
 	swaggerSpec := docs.SwaggerInfo.ReadDoc()
 
