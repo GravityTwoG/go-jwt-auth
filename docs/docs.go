@@ -64,6 +64,30 @@ const docTemplate = `{
                 }
             }
         },
+        "/auth/delete-user": {
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "Delete user",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/go-jwt-auth_internal_rest-api_dto.CommonResponseDTO"
+                        }
+                    }
+                }
+            }
+        },
         "/auth/login": {
             "post": {
                 "description": "Logins user, also sets refresh token in cookie",
@@ -177,6 +201,29 @@ const docTemplate = `{
                         "description": "OK",
                         "schema": {
                             "$ref": "#/definitions/go-jwt-auth_internal_rest-api_dto.UserDTO"
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/oauth-providers": {
+            "get": {
+                "description": "Get supported oauth providers",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "Get supported oauth providers",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
                         }
                     }
                 }

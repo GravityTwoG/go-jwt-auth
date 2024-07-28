@@ -84,3 +84,42 @@ func (r *userRepository) GetByEmail(
 
 	return models.UserFromModel(&userModel), nil
 }
+
+func (r *userRepository) DeleteByID(
+	ctx context.Context,
+	id uint,
+) domainerrors.ErrDomain {
+
+	tx := r.txGetter.DefaultTrOrDB(ctx, r.db).Begin()
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+		}
+	}()
+
+	err := tx.
+		Unscoped().
+		Where(&models.RefreshToken{UserID: id}).
+		Delete(&models.RefreshToken{}).Error
+	if err != nil {
+		tx.Rollback()
+		return database.MapGormErrors(err, "refresh token")
+	}
+
+	err = tx.
+		Unscoped().
+		Where(&models.User{ID: id}).
+		Delete(&models.User{}).Error
+
+	if err != nil {
+		tx.Rollback()
+		return database.MapGormErrors(err, "user")
+	}
+
+	err = tx.Commit().Error
+	if err != nil {
+		return database.MapGormErrors(err, "transaction")
+	}
+
+	return nil
+}

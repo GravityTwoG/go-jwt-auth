@@ -63,6 +63,11 @@ type UserRepository interface {
 		ctx context.Context,
 		email string,
 	) (*entities.User, domainerrors.ErrDomain)
+
+	DeleteByID(
+		ctx context.Context,
+		id uint,
+	) domainerrors.ErrDomain
 }
 
 type RefreshTokenRepository interface {
@@ -126,6 +131,8 @@ type AuthService interface {
 		userAgent string,
 	) (*entities.User, *Tokens, domainerrors.ErrDomain)
 
+	GetSupportedOAuthProviders() []string
+
 	RequestConsentURL(
 		ctx context.Context,
 		provider string,
@@ -176,6 +183,8 @@ type AuthService interface {
 		refreshToken string,
 		userAgent string,
 	) domainerrors.ErrDomain
+
+	DeleteUser(ctx context.Context, userID uint) domainerrors.ErrDomain
 
 	RunScheduledTasks(ctx context.Context)
 }
@@ -338,6 +347,15 @@ func (s *authService) createTokensPair(
 		AccessToken:  accessToken,
 		RefreshToken: *refreshTokenEntity,
 	}, nil
+}
+
+func (s *authService) GetSupportedOAuthProviders() []string {
+	providers := make([]string, 0, len(s.oauthServices))
+	for provider := range s.oauthServices {
+		providers = append(providers, provider)
+	}
+
+	return providers
 }
 
 func (s *authService) RequestConsentURL(
@@ -665,6 +683,13 @@ func (s *authService) logoutAll(
 		ctx,
 		existingRefreshToken.GetUserID(),
 	)
+}
+
+func (s *authService) DeleteUser(
+	ctx context.Context,
+	userID uint,
+) domainerrors.ErrDomain {
+	return s.userRepo.DeleteByID(ctx, userID)
 }
 
 func (s *authService) RunScheduledTasks(ctx context.Context) {

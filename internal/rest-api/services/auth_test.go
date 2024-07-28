@@ -65,6 +65,20 @@ func (m *mockedUserRepository) GetByEmail(
 	return user.(*entities.User), nil
 }
 
+func (m *mockedUserRepository) DeleteByID(
+	ctx context.Context,
+	id uint,
+) domainerrors.ErrDomain {
+	args := m.Called(ctx, id)
+
+	err := args.Error(0)
+	if err != nil {
+		return err.(domainerrors.ErrDomain)
+	}
+
+	return nil
+}
+
 type mockedRefreshTokenRepository struct {
 	mock.Mock
 }

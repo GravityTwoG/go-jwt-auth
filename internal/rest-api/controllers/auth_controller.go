@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"crypto/rsa"
+	"errors"
 	"fmt"
 	"net/http"
 
@@ -53,12 +54,15 @@ func NewAuthController(
 	auth.POST("/register", anonMiddleware, ac.register)
 	auth.POST("/login", anonMiddleware, ac.login)
 
+	auth.GET("/oauth-providers", ac.getSupportedOAuthProviders)
+
 	auth.GET("/:provider/consent", anonMiddleware, ac.requestConsentURL)
 	auth.POST("/:provider/register-callback", anonMiddleware, ac.registerWithOAuth)
 	auth.POST("/:provider/login-callback", anonMiddleware, ac.loginWithOAuth)
 
 	auth.POST("/logout", authMiddleware, ac.logout)
 	auth.POST("/logout-all", authMiddleware, ac.logoutAll)
+	auth.POST("/delete-user", authMiddleware, ac.deleteUser)
 
 	auth.POST("/refresh-tokens", ac.refreshTokens)
 
@@ -150,6 +154,16 @@ func (ac *authController) login(c *gin.Context) {
 		RefreshToken: tokens.RefreshToken.GetToken(),
 		User:         *dto.UserFromEntity(user),
 	})
+}
+
+// @Tags		Auth
+// @Summary	Get supported oauth providers
+// @Description Get supported oauth providers
+// @Produce	json
+// @Success	200	{object}	[]string
+// @Router		/auth/oauth-providers [get]
+func (ac *authController) getSupportedOAuthProviders(c *gin.Context) {
+	c.JSON(http.StatusOK, ac.authService.GetSupportedOAuthProviders())
 }
 
 // @Tags		Auth
@@ -480,6 +494,32 @@ func (ac *authController) logoutAll(c *gin.Context) {
 	ac.resetRefreshTokenCookie(c)
 
 	c.JSON(http.StatusOK, gin.H{"message": "Logged out"})
+}
+
+// @Tags		Auth
+// @Summary	Delete user
+// @Security	ApiKeyAuth
+// @Produce	json
+// @Success	200	{object}	dto.CommonResponseDTO
+// @Router		/auth/delete-user [post]
+func (ac *authController) deleteUser(c *gin.Context) {
+	user := middlewares.ExtractUser(c)
+	if user == nil {
+		writeError(c, domainerrors.NewErrUnknown(
+			errors.New("user not found"),
+		))
+		return
+	}
+
+	err := ac.authService.DeleteUser(c, user.ID)
+	if err != nil {
+		writeError(c, err)
+		return
+	}
+
+	ac.resetRefreshTokenCookie(c)
+
+	c.JSON(http.StatusOK, gin.H{"message": "User deleted"})
 }
 
 func (ac *authController) setRefreshTokenCookie(

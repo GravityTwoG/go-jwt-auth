@@ -251,6 +251,20 @@ paths:
       summary: Get tokens config
       tags:
       - Auth
+  /auth/delete-user:
+    post:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/go-jwt-auth_internal_rest-api_dto.CommonResponseDTO'
+      security:
+      - ApiKeyAuth: []
+      summary: Delete user
+      tags:
+      - Auth
   /auth/login:
     post:
       consumes:
@@ -321,6 +335,21 @@ paths:
       security:
       - ApiKeyAuth: []
       summary: Get current user
+      tags:
+      - Auth
+  /auth/oauth-providers:
+    get:
+      description: Get supported oauth providers
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              type: string
+            type: array
+      summary: Get supported oauth providers
       tags:
       - Auth
   /auth/refresh-tokens:
