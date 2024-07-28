@@ -98,8 +98,6 @@ func (s *googleOAuthService) FetchUserEmail(
 		return "", domainerrors.NewErrUnknown(err)
 	}
 
-	fmt.Println(string(body))
-
 	var dto struct {
 		IDToken string `json:"id_token"`
 	}

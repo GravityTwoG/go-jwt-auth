@@ -99,7 +99,7 @@ func (ac *authController) register(c *gin.Context) {
 		return
 	}
 
-	setRefreshTokenCookie(c, &tokens.RefreshToken, ac.domain, ac.path)
+	ac.setRefreshTokenCookie(c, &tokens.RefreshToken)
 
 	c.JSON(http.StatusCreated, &dto.RegisterResponseDTO{
 		AccessToken:  tokens.AccessToken,
@@ -143,7 +143,7 @@ func (ac *authController) login(c *gin.Context) {
 		return
 	}
 
-	setRefreshTokenCookie(c, &tokens.RefreshToken, ac.domain, ac.path)
+	ac.setRefreshTokenCookie(c, &tokens.RefreshToken)
 
 	c.JSON(http.StatusOK, &dto.LoginResponseDTO{
 		AccessToken:  tokens.AccessToken,
@@ -235,7 +235,7 @@ func (ac *authController) registerWithOAuth(c *gin.Context) {
 		return
 	}
 
-	setRefreshTokenCookie(c, &tokens.RefreshToken, ac.domain, ac.path)
+	ac.setRefreshTokenCookie(c, &tokens.RefreshToken)
 
 	c.JSON(http.StatusCreated, &dto.RegisterResponseDTO{
 		AccessToken:  tokens.AccessToken,
@@ -288,7 +288,7 @@ func (ac *authController) loginWithOAuth(c *gin.Context) {
 		return
 	}
 
-	setRefreshTokenCookie(c, &tokens.RefreshToken, ac.domain, ac.path)
+	ac.setRefreshTokenCookie(c, &tokens.RefreshToken)
 
 	c.JSON(http.StatusOK, &dto.LoginResponseDTO{
 		AccessToken:  tokens.AccessToken,
@@ -342,14 +342,14 @@ func (ac *authController) refreshTokens(c *gin.Context) {
 			services.InvalidUserAgent,
 			services.InvalidFingerPrint:
 
-			resetCookie(c, cookieName, ac.domain, ac.path)
+			ac.resetRefreshTokenCookie(c)
 		}
 
 		writeError(c, derr)
 		return
 	}
 
-	setRefreshTokenCookie(c, &tokens.RefreshToken, ac.domain, ac.path)
+	ac.setRefreshTokenCookie(c, &tokens.RefreshToken)
 
 	c.JSON(http.StatusOK, &dto.RefreshTokensResponseDTO{
 		AccessToken:  tokens.AccessToken,
@@ -422,7 +422,7 @@ func (ac *authController) logout(c *gin.Context) {
 		// Should logout in any case
 
 		// Delete refresh token from cookie
-		resetCookie(c, cookieName, ac.domain, ac.path)
+		ac.resetRefreshTokenCookie(c)
 
 		c.JSON(http.StatusOK, &dto.CommonResponseDTO{
 			Message: err.Error(),
@@ -438,7 +438,7 @@ func (ac *authController) logout(c *gin.Context) {
 		}
 
 		// Delete refresh token from cookie
-		resetCookie(c, cookieName, ac.domain, ac.path)
+		ac.resetRefreshTokenCookie(c)
 
 		c.JSON(http.StatusOK, &dto.CommonResponseDTO{
 			Message: "Logged out",
@@ -477,32 +477,27 @@ func (ac *authController) logoutAll(c *gin.Context) {
 	}
 
 	// Delete refresh token from cookie
-	resetCookie(c, cookieName, ac.domain, ac.path)
+	ac.resetRefreshTokenCookie(c)
 
 	c.JSON(http.StatusOK, gin.H{"message": "Logged out"})
 }
 
-func setRefreshTokenCookie(
+func (ac *authController) setRefreshTokenCookie(
 	c *gin.Context,
 	refreshToken *entities.RefreshToken,
-	domain string,
-	path string,
 ) {
 	c.SetSameSite(http.SameSiteNoneMode)
 	c.SetCookie(
 		cookieName, refreshToken.GetToken(),
-		refreshToken.GetTTLSec(), path, domain, true, true,
+		refreshToken.GetTTLSec(), ac.path, ac.domain, true, true,
 	)
 }
 
-func resetCookie(
+func (ac *authController) resetRefreshTokenCookie(
 	c *gin.Context,
-	name string,
-	domain string,
-	path string,
 ) {
 	c.SetSameSite(http.SameSiteNoneMode)
-	c.SetCookie(name, "", -1, path, domain, true, true)
+	c.SetCookie(cookieName, "", -1, ac.path, ac.domain, true, true)
 }
 
 func writeError(

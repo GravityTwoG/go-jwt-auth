@@ -386,9 +386,10 @@ func (s *authService) RegisterWithOAuth(
 	password := uuid.New().String()
 
 	registerDTO := &dto.RegisterDTO{
-		Email:     email,
-		Password:  password,
-		Password2: password,
+		Email:       email,
+		Password:    password,
+		Password2:   password,
+		FingerPrint: registerWithOAuthDTO.FingerPrint,
 	}
 
 	return s.Register(ctx, registerDTO, ip, userAgent)
