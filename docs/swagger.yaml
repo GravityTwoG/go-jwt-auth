@@ -223,21 +223,6 @@ paths:
         cookie
       tags:
       - Auth
-  /auth/active-sessions:
-    get:
-      description: Get active sessions (list of refresh tokens)
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/go-jwt-auth_internal_rest-api_dto.SessionsDTO'
-      security:
-      - ApiKeyAuth: []
-      summary: Get active sessions
-      tags:
-      - Auth
   /auth/config:
     get:
       description: Get TTL of tokens
@@ -335,6 +320,36 @@ paths:
       security:
       - ApiKeyAuth: []
       summary: Get current user
+      tags:
+      - Auth
+  /auth/me/active-sessions:
+    get:
+      description: Get active sessions (list of refresh tokens)
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/go-jwt-auth_internal_rest-api_dto.SessionsDTO'
+      security:
+      - ApiKeyAuth: []
+      summary: Get active sessions
+      tags:
+      - Auth
+  /auth/me/auth-providers:
+    get:
+      description: Get user auth providers
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              type: string
+            type: array
+      summary: Get user auth providers
       tags:
       - Auth
   /auth/oauth-providers:

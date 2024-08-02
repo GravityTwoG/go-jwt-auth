@@ -19,31 +19,6 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
-        "/auth/active-sessions": {
-            "get": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "Get active sessions (list of refresh tokens)",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Auth"
-                ],
-                "summary": "Get active sessions",
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/go-jwt-auth_internal_rest-api_dto.SessionsDTO"
-                        }
-                    }
-                }
-            }
-        },
         "/auth/config": {
             "get": {
                 "description": "Get TTL of tokens",
@@ -201,6 +176,54 @@ const docTemplate = `{
                         "description": "OK",
                         "schema": {
                             "$ref": "#/definitions/go-jwt-auth_internal_rest-api_dto.UserDTO"
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/me/active-sessions": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Get active sessions (list of refresh tokens)",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "Get active sessions",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/go-jwt-auth_internal_rest-api_dto.SessionsDTO"
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/me/auth-providers": {
+            "get": {
+                "description": "Get user auth providers",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "Get user auth providers",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
                         }
                     }
                 }

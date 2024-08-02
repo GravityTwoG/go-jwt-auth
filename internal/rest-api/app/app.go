@@ -67,6 +67,11 @@ func Run() {
 		trmgorm.DefaultCtxGetter,
 	)
 
+	userAuthProviderRepo := repositories.NewUserAuthProviderRepository(
+		db,
+		trmgorm.DefaultCtxGetter,
+	)
+
 	privateKey, err := services.ParseRSAKey(
 		cfg.JWTPrivateKey,
 	)
@@ -83,11 +88,15 @@ func Run() {
 
 	authService := services.NewAuthService(
 		trManager,
+
 		userRepo,
 		refreshTokenRepo,
+		userAuthProviderRepo,
 		jwtService,
+
 		cfg.AccessTokenTTLsec,
 		cfg.RefreshTokenTTLsec,
+
 		map[string]oauth.OAuthService{
 			"google": googleOAuthService,
 		},

@@ -67,7 +67,9 @@ func NewAuthController(
 	auth.POST("/refresh-tokens", ac.refreshTokens)
 
 	auth.GET("/me", authMiddleware, ac.me)
-	auth.GET("/active-sessions", authMiddleware, ac.activeSessions)
+	auth.GET("/me/active-sessions", authMiddleware, ac.activeSessions)
+	auth.GET("/me/auth-providers", authMiddleware, ac.getAuthProviders)
+
 	auth.GET("/config", ac.config)
 }
 
@@ -97,6 +99,7 @@ func (ac *authController) register(c *gin.Context) {
 		registerDTO,
 		ip,
 		userAgent,
+		services.LocalAuthProvider,
 	)
 	if derr != nil {
 		writeError(c, derr)
@@ -163,7 +166,7 @@ func (ac *authController) login(c *gin.Context) {
 // @Success	200	{object}	[]string
 // @Router		/auth/oauth-providers [get]
 func (ac *authController) getSupportedOAuthProviders(c *gin.Context) {
-	c.JSON(http.StatusOK, ac.authService.GetSupportedOAuthProviders())
+	c.JSON(http.StatusOK, ac.authService.GetSupportedAuthProviders())
 }
 
 // @Tags		Auth
@@ -395,7 +398,7 @@ func (ac *authController) me(c *gin.Context) {
 // @Security	ApiKeyAuth
 // @Produce	json
 // @Success	200	{object}	dto.SessionsDTO
-// @Router		/auth/active-sessions [get]
+// @Router		/auth/me/active-sessions [get]
 func (ac *authController) activeSessions(c *gin.Context) {
 	userDTO := middlewares.ExtractUser(c)
 
@@ -411,6 +414,27 @@ func (ac *authController) activeSessions(c *gin.Context) {
 	sessionsDTO := dto.SessionsDTOFromEntities(sessions)
 
 	c.JSON(http.StatusOK, sessionsDTO)
+}
+
+// @Tags		Auth
+// @Summary	Get user auth providers
+// @Description	Get user auth providers
+// @Produce	json
+// @Success	200	{object}	[]string
+// @Router		/auth/me/auth-providers [get]
+func (ac *authController) getAuthProviders(c *gin.Context) {
+	userID := middlewares.ExtractUser(c).ID
+
+	providers, err := ac.authService.GetAuthProviders(
+		c,
+		userID,
+	)
+	if err != nil {
+		writeError(c, err)
+		return
+	}
+
+	c.JSON(http.StatusOK, providers)
 }
 
 // @Tags		Auth

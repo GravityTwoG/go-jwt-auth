@@ -5,6 +5,7 @@ import (
 	"crypto/rand"
 	"crypto/rsa"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -14,173 +15,8 @@ import (
 	"go-jwt-auth/internal/rest-api/entities"
 	"go-jwt-auth/internal/rest-api/services"
 	"go-jwt-auth/internal/rest-api/services/oauth"
+	"go-jwt-auth/tests/mocks"
 )
-
-type mockedUserRepository struct {
-	mock.Mock
-}
-
-func (m *mockedUserRepository) Create(
-	ctx context.Context,
-	user *entities.User,
-) domainerrors.ErrDomain {
-	args := m.Called(ctx, user)
-	err := args.Error(0)
-	if err != nil {
-		return err.(domainerrors.ErrDomain)
-	}
-	return nil
-}
-
-func (m *mockedUserRepository) GetByID(
-	ctx context.Context,
-	id uint,
-) (*entities.User, domainerrors.ErrDomain) {
-	args := m.Called(ctx, id)
-
-	user := args.Get(0)
-	err := args.Error(1)
-
-	if err != nil {
-		return nil, err.(domainerrors.ErrDomain)
-	}
-
-	return user.(*entities.User), nil
-}
-
-func (m *mockedUserRepository) GetByEmail(
-	ctx context.Context,
-	email string,
-) (*entities.User, domainerrors.ErrDomain) {
-
-	args := m.Called(ctx, email)
-
-	user := args.Get(0)
-	err := args.Error(1)
-
-	if err != nil {
-		return nil, err.(domainerrors.ErrDomain)
-	}
-
-	return user.(*entities.User), nil
-}
-
-func (m *mockedUserRepository) DeleteByID(
-	ctx context.Context,
-	id uint,
-) domainerrors.ErrDomain {
-	args := m.Called(ctx, id)
-
-	err := args.Error(0)
-	if err != nil {
-		return err.(domainerrors.ErrDomain)
-	}
-
-	return nil
-}
-
-type mockedRefreshTokenRepository struct {
-	mock.Mock
-}
-
-func (m *mockedRefreshTokenRepository) Create(
-	ctx context.Context,
-	refreshToken *entities.RefreshToken,
-) domainerrors.ErrDomain {
-	args := m.Called(ctx, refreshToken)
-
-	err := args.Error(0)
-	if err != nil {
-		return err.(domainerrors.ErrDomain)
-	}
-
-	return nil
-}
-
-func (m *mockedRefreshTokenRepository) Update(
-	ctx context.Context,
-	refreshToken *entities.RefreshToken,
-) domainerrors.ErrDomain {
-	args := m.Called(ctx, refreshToken)
-
-	err := args.Error(0)
-	if err != nil {
-		return err.(domainerrors.ErrDomain)
-	}
-
-	return nil
-}
-
-func (m *mockedRefreshTokenRepository) GetByToken(
-	ctx context.Context,
-	token string,
-) (*entities.RefreshToken, domainerrors.ErrDomain) {
-	args := m.Called(ctx, token)
-
-	refreshToken := args.Get(0)
-	err := args.Error(1)
-	if err != nil {
-		return nil, err.(domainerrors.ErrDomain)
-	}
-
-	return refreshToken.(*entities.RefreshToken), nil
-}
-
-func (m *mockedRefreshTokenRepository) GetByUserID(
-	ctx context.Context,
-	id uint,
-) ([]*entities.RefreshToken, domainerrors.ErrDomain) {
-	args := m.Called(ctx, id)
-
-	refreshTokens := args.Get(0)
-	err := args.Error(1)
-	if err != nil {
-		return nil, err.(domainerrors.ErrDomain)
-	}
-
-	return refreshTokens.([]*entities.RefreshToken), nil
-}
-
-func (m *mockedRefreshTokenRepository) Delete(
-	ctx context.Context,
-	refreshToken *entities.RefreshToken,
-) domainerrors.ErrDomain {
-	args := m.Called(ctx, refreshToken)
-
-	err := args.Error(0)
-	if err != nil {
-		return err.(domainerrors.ErrDomain)
-	}
-
-	return nil
-}
-
-func (m *mockedRefreshTokenRepository) DeleteByUserID(
-	ctx context.Context,
-	userID uint,
-) domainerrors.ErrDomain {
-	args := m.Called(ctx, userID)
-
-	err := args.Error(0)
-	if err != nil {
-		return err.(domainerrors.ErrDomain)
-	}
-
-	return nil
-}
-
-func (m *mockedRefreshTokenRepository) DeleteExpired(
-	ctx context.Context,
-) domainerrors.ErrDomain {
-	args := m.Called(ctx)
-
-	err := args.Error(0)
-	if err != nil {
-		return err.(domainerrors.ErrDomain)
-	}
-
-	return nil
-}
 
 func TestAuthService_Register(t *testing.T) {
 	tests := []struct {
@@ -277,8 +113,15 @@ func TestAuthService_Register(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			mockUserRepo := new(mockedUserRepository)
-			mockRefreshTokenRepo := new(mockedRefreshTokenRepository)
+			mockUserRepo := new(mocks.MockedUserRepository)
+			mockRefreshTokenRepo := new(mocks.MockedRefreshTokenRepository)
+			mockUserAuthProviderRepo := new(mocks.MockedUserAuthProviderRepository)
+
+			mockUserAuthProviderRepo.
+				On("Create", mock.Anything, mock.Anything, mock.Anything).
+				Return(nil)
+
+			mockTRManager := new(mocks.MockedTRManager)
 
 			if tt.mockUserCreate != nil {
 				tt.mockUserCreate(&mockUserRepo.Mock)
@@ -295,9 +138,10 @@ func TestAuthService_Register(t *testing.T) {
 			googleOAuthService := oauth.NewGoogleOAuthService("", "")
 
 			authService := services.NewAuthService(
-				nil,
+				mockTRManager,
 				mockUserRepo,
 				mockRefreshTokenRepo,
+				mockUserAuthProviderRepo,
 				jwtService,
 				3600,
 				86400,
@@ -311,6 +155,7 @@ func TestAuthService_Register(t *testing.T) {
 				tt.registerDTO,
 				"127.0.0.1",
 				"Mozilla",
+				services.LocalAuthProvider,
 			)
 
 			if tt.expectedErr != nil {
@@ -424,15 +269,30 @@ func TestAuthService_Login(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			mockUserRepo := new(mockedUserRepository)
-			mockRefreshTokenRepository := new(mockedRefreshTokenRepository)
+			mockUserRepo := new(mocks.MockedUserRepository)
+			mockRefreshTokenRepo := new(mocks.MockedRefreshTokenRepository)
+			mockUserAuthProviderRepo := new(mocks.MockedUserAuthProviderRepository)
 
 			mockUserRepo.
 				On("GetByEmail", mock.Anything, mock.Anything).
 				Return(tt.mockUser, tt.mockUserErr)
 
+			mockUserAuthProviderRepo.
+				On("GetByUserID", mock.Anything, mock.Anything).
+				Return([]*entities.UserAuthProvider{
+					entities.UserAuthProviderFromDB(
+						1,
+						1,
+						services.LocalAuthProvider,
+						time.Now(),
+						time.Now(),
+					),
+				}, nil)
+
+			mockTRManager := new(mocks.MockedTRManager)
+
 			if tt.mockUser != nil {
-				mockRefreshTokenRepository.On("Create", mock.Anything, mock.AnythingOfType("*entities.RefreshToken")).Return(tt.mockRefreshCreateErr)
+				mockRefreshTokenRepo.On("Create", mock.Anything, mock.AnythingOfType("*entities.RefreshToken")).Return(tt.mockRefreshCreateErr)
 			}
 
 			privateKey, err := rsa.GenerateKey(rand.Reader, 2048)
@@ -443,9 +303,10 @@ func TestAuthService_Login(t *testing.T) {
 			googleOAuthService := oauth.NewGoogleOAuthService("", "")
 
 			authService := services.NewAuthService(
-				nil,
+				mockTRManager,
 				mockUserRepo,
-				mockRefreshTokenRepository,
+				mockRefreshTokenRepo,
+				mockUserAuthProviderRepo,
 				jwtService,
 				3600,
 				86400,
@@ -454,7 +315,12 @@ func TestAuthService_Login(t *testing.T) {
 				},
 			)
 
-			user, tokens, err := authService.Login(context.Background(), tt.loginDTO, tt.ip, tt.userAgent)
+			user, tokens, err := authService.Login(
+				context.Background(),
+				tt.loginDTO,
+				tt.ip,
+				tt.userAgent,
+			)
 
 			if tt.expectedUser != nil {
 				assert.Equal(t, tt.expectedUser.GetID(), user.GetID())
@@ -474,7 +340,7 @@ func TestAuthService_Login(t *testing.T) {
 			assert.Equal(t, tt.expectedErr, err)
 
 			mockUserRepo.AssertExpectations(t)
-			mockRefreshTokenRepository.AssertExpectations(t)
+			mockRefreshTokenRepo.AssertExpectations(t)
 		})
 	}
 }

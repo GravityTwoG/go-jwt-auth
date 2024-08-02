@@ -108,6 +108,16 @@ func (r *userRepository) DeleteByID(
 
 	err = tx.
 		Unscoped().
+		Delete(&models.UserAuthProvider{}, "user_id = ?", id).
+		Error
+
+	if err != nil {
+		tx.Rollback()
+		return database.MapGormErrors(err, "user auth provider")
+	}
+
+	err = tx.
+		Unscoped().
 		Where(&models.User{ID: id}).
 		Delete(&models.User{}).Error
 

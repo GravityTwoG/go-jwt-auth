@@ -7,9 +7,9 @@ import (
 	"go-jwt-auth/internal/rest-api/entities"
 	"go-jwt-auth/internal/rest-api/services/oauth"
 	"log"
+	"slices"
 	"time"
 
-	"github.com/avito-tech/go-transaction-manager/trm/v2/manager"
 	"github.com/google/uuid"
 )
 
@@ -18,6 +18,9 @@ const RefreshTokenExpired = "REFRESH_TOKEN_EXPIRED"
 const RefreshTokenNotFound = "REFRESH_TOKEN_NOT_FOUND"
 const InvalidUserAgent = "INVALID_USER_AGENT"
 const InvalidFingerPrint = "INVALID_FINGER_PRINT"
+const HasNoAuthProvider = "HAS_NO_AUTH_PROVIDER"
+
+const LocalAuthProvider = "local"
 
 var (
 	ErrEmailAlreadyExists = domainerrors.NewErrEntityAlreadyExists(
@@ -105,6 +108,24 @@ type RefreshTokenRepository interface {
 		ctx context.Context) domainerrors.ErrDomain
 }
 
+type UserAuthProviderRepository interface {
+	Create(
+		ctx context.Context,
+		userID uint,
+		providerName string,
+	) domainerrors.ErrDomain
+
+	GetByUserID(
+		ctx context.Context,
+		userID uint,
+	) ([]*entities.UserAuthProvider, domainerrors.ErrDomain)
+
+	Delete(
+		ctx context.Context,
+		userAuthProvider *entities.UserAuthProvider,
+	) domainerrors.ErrDomain
+}
+
 type JWTService interface {
 	NewJWT(
 		user *entities.User,
@@ -116,12 +137,20 @@ type JWTService interface {
 	) (*TokenClaims, error)
 }
 
+type TRManager interface {
+	Do(
+		ctx context.Context,
+		fn func(ctx context.Context) error,
+	) error
+}
+
 type AuthService interface {
 	Register(
 		ctx context.Context,
 		dto *dto.RegisterDTO,
 		ip string,
 		userAgent string,
+		provider string,
 	) (*entities.User, *Tokens, domainerrors.ErrDomain)
 
 	Login(
@@ -131,7 +160,7 @@ type AuthService interface {
 		userAgent string,
 	) (*entities.User, *Tokens, domainerrors.ErrDomain)
 
-	GetSupportedOAuthProviders() []string
+	GetSupportedAuthProviders() []string
 
 	RequestConsentURL(
 		ctx context.Context,
@@ -170,6 +199,11 @@ type AuthService interface {
 		id uint,
 	) ([]*entities.RefreshToken, domainerrors.ErrDomain)
 
+	GetAuthProviders(
+		ctx context.Context,
+		userID uint,
+	) ([]string, domainerrors.ErrDomain)
+
 	GetConfig(ctx context.Context) *dto.ConfigDTO
 
 	Logout(
@@ -190,11 +224,13 @@ type AuthService interface {
 }
 
 type authService struct {
-	trManager *manager.Manager
+	trManager TRManager
 
 	userRepo UserRepository
 
 	refreshTokenRepository RefreshTokenRepository
+
+	userAuthProviderRepository UserAuthProviderRepository
 
 	jwtService JWTService
 
@@ -205,9 +241,10 @@ type authService struct {
 }
 
 func NewAuthService(
-	trManager *manager.Manager,
+	trManager TRManager,
 	userRepo UserRepository,
 	refreshTokenRepository RefreshTokenRepository,
+	userAuthProviderRepository UserAuthProviderRepository,
 	jwtService JWTService,
 	accessTokenTTLsec int,
 	refreshTokenTTLsec int,
@@ -220,6 +257,8 @@ func NewAuthService(
 		userRepo: userRepo,
 
 		refreshTokenRepository: refreshTokenRepository,
+
+		userAuthProviderRepository: userAuthProviderRepository,
 
 		jwtService: jwtService,
 
@@ -235,6 +274,42 @@ func (s *authService) Register(
 	registerDTO *dto.RegisterDTO,
 	ip string,
 	userAgent string,
+	provider string,
+) (*entities.User, *Tokens, domainerrors.ErrDomain) {
+
+	var user *entities.User = nil
+	var tokens *Tokens = nil
+	var derr domainerrors.ErrDomain = nil
+
+	err := s.trManager.Do(ctx, func(ctx context.Context) error {
+		user, tokens, derr = s.register(
+			ctx,
+			registerDTO,
+			ip,
+			userAgent,
+			provider,
+		)
+
+		return derr
+	})
+
+	if derr != nil {
+		return nil, nil, derr
+	}
+
+	if err != nil {
+		return nil, nil, domainerrors.NewErrUnknown(err)
+	}
+
+	return user, tokens, nil
+}
+
+func (s *authService) register(
+	ctx context.Context,
+	registerDTO *dto.RegisterDTO,
+	ip string,
+	userAgent string,
+	provider string,
 ) (*entities.User, *Tokens, domainerrors.ErrDomain) {
 
 	if registerDTO.Password != registerDTO.Password2 {
@@ -255,6 +330,11 @@ func (s *authService) Register(
 			return nil, nil, ErrEmailAlreadyExists
 		}
 
+		return nil, nil, err
+	}
+
+	err = s.userAuthProviderRepository.Create(ctx, user.GetID(), provider)
+	if err != nil {
 		return nil, nil, err
 	}
 
@@ -286,6 +366,29 @@ func (s *authService) Login(
 		}
 
 		return nil, nil, err
+	}
+
+	// check if user has auth provider
+	authProviders, err := s.userAuthProviderRepository.GetByUserID(
+		ctx,
+		user.GetID(),
+	)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	hasLocalAuthProvider := slices.ContainsFunc(
+		authProviders,
+		func(authProvider *entities.UserAuthProvider) bool {
+			return authProvider.GetName() == LocalAuthProvider
+		},
+	)
+
+	if !hasLocalAuthProvider {
+		return nil, nil, domainerrors.NewErrEntityNotFound(
+			HasNoAuthProvider,
+			"user has no auth provider: "+LocalAuthProvider,
+		)
 	}
 
 	if !user.ComparePassword(loginDTO.Password) {
@@ -349,7 +452,7 @@ func (s *authService) createTokensPair(
 	}, nil
 }
 
-func (s *authService) GetSupportedOAuthProviders() []string {
+func (s *authService) GetSupportedAuthProviders() []string {
 	providers := make([]string, 0, len(s.oauthServices))
 	for provider := range s.oauthServices {
 		providers = append(providers, provider)
@@ -410,7 +513,7 @@ func (s *authService) RegisterWithOAuth(
 		FingerPrint: registerWithOAuthDTO.FingerPrint,
 	}
 
-	return s.Register(ctx, registerDTO, ip, userAgent)
+	return s.Register(ctx, registerDTO, ip, userAgent, provider)
 }
 
 func (s *authService) LoginWithOAuth(
@@ -439,6 +542,29 @@ func (s *authService) LoginWithOAuth(
 	user, err := s.userRepo.GetByEmail(ctx, email)
 	if err != nil {
 		return nil, nil, err
+	}
+
+	// check if user has auth provider
+	authProviders, err := s.userAuthProviderRepository.GetByUserID(
+		ctx,
+		user.GetID(),
+	)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	hasLocalAuthProvider := slices.ContainsFunc(
+		authProviders,
+		func(authProvider *entities.UserAuthProvider) bool {
+			return authProvider.GetName() == provider
+		},
+	)
+
+	if !hasLocalAuthProvider {
+		return nil, nil, domainerrors.NewErrEntityNotFound(
+			HasNoAuthProvider,
+			"user has no auth provider: "+provider,
+		)
 	}
 
 	tokens, err := s.createTokensPair(
@@ -583,6 +709,26 @@ func (s *authService) GetActiveSessions(
 ) ([]*entities.RefreshToken, domainerrors.ErrDomain) {
 
 	return s.refreshTokenRepository.GetByUserID(ctx, id)
+}
+
+func (s *authService) GetAuthProviders(
+	ctx context.Context,
+	userID uint,
+) ([]string, domainerrors.ErrDomain) {
+	userAuthProviders, err := s.userAuthProviderRepository.GetByUserID(
+		ctx,
+		userID,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	providers := make([]string, 0, len(userAuthProviders))
+	for i := 0; i < len(userAuthProviders); i++ {
+		providers = append(providers, userAuthProviders[i].GetName())
+	}
+
+	return providers, nil
 }
 
 func (s *authService) GetConfig(

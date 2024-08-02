@@ -3,6 +3,7 @@ package main
 import (
 	"go-jwt-auth/internal/rest-api/database"
 	"go-jwt-auth/internal/rest-api/models"
+	"go-jwt-auth/internal/rest-api/services"
 	"log"
 
 	"github.com/ilyakaznacheev/cleanenv"
@@ -57,6 +58,51 @@ func main() {
 		err = db.Migrator().AddColumn(&models.RefreshToken{}, "finger_print")
 		if err != nil {
 			log.Fatal(err)
+		}
+	}
+
+	if !db.Migrator().HasTable(&models.AuthProvider{}) {
+		log.Println("Creating auth providers table")
+		err = db.Migrator().CreateTable(&models.AuthProvider{})
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		err = db.Create(&models.AuthProvider{
+			Name: services.LocalAuthProvider,
+		}).Error
+		if err != nil {
+			log.Fatalf("Error creating local auth provider: %v", err)
+		}
+
+		err = db.Create(&models.AuthProvider{
+			Name: "google",
+		}).Error
+		if err != nil {
+			log.Fatalf("Error creating google auth provider: %v", err)
+		}
+	}
+
+	if !db.Migrator().HasTable(&models.UserAuthProvider{}) {
+		log.Println("Creating user auth providers table")
+		err = db.Migrator().CreateTable(&models.UserAuthProvider{})
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		localAuthProvider := models.AuthProvider{}
+		err = db.
+			Model(&models.AuthProvider{}).
+			Where(&models.AuthProvider{Name: services.LocalAuthProvider}).
+			First(&localAuthProvider).Error
+		if err != nil {
+			log.Fatalf("Error getting local auth provider: %v", err)
+		}
+
+		// create local auth provider for all users
+		err = db.Raw("INSERT INTO user_auth_providers (user_id, auth_provider_id) SELECT id, ? FROM users", localAuthProvider.ID).Error
+		if err != nil {
+			log.Fatalf("Error creating local auth provider for all users: %v", err)
 		}
 	}
 
