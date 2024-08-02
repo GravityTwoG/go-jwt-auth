@@ -18,6 +18,8 @@ import (
 	"github.com/avito-tech/go-transaction-manager/trm/v2"
 	"github.com/avito-tech/go-transaction-manager/trm/v2/manager"
 	"github.com/avito-tech/go-transaction-manager/trm/v2/settings"
+	swaggerfiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
@@ -117,13 +119,19 @@ func Run() {
 	go authService.RunScheduledTasks(ctxCancel)
 
 	// Swagger docs
-	docs.SwaggerInfo.Host = cfg.Domain
+	if cfg.Domain == "localhost" {
+		docs.SwaggerInfo.Host = "localhost:" + cfg.Port
+	} else {
+		docs.SwaggerInfo.Host = cfg.Domain
+	}
 	docs.SwaggerInfo.Schemes = []string{"https", "http"}
 	docs.SwaggerInfo.BasePath = "/api"
 	// read swagger.json
 	swaggerSpec := docs.SwaggerInfo.ReadDoc()
 
-	r.GET("/swagger/*any", func(ctx *gin.Context) {
+	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerfiles.Handler))
+
+	r.GET("/scalar/*any", func(ctx *gin.Context) {
 		htmlContent, err := scalar.ApiReferenceHTML(&scalar.Options{
 			SpecContent: swaggerSpec,
 			DarkMode:    true,
