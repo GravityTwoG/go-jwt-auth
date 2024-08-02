@@ -12,9 +12,6 @@ type Config struct {
 	AccessTokenTTLsec  int    `env:"ACCESS_TOKEN_TTL_SEC" env-required:"true"`
 	RefreshTokenTTLsec int    `env:"REFRESH_TOKEN_TTL_SEC" env-required:"true"`
 
-	GoogleClientID     string `env:"GOOGLE_CLIENT_ID" env-required:"true"`
-	GoogleClientSecret string `env:"GOOGLE_CLIENT_SECRET" env-required:"true"`
-
 	Port string `env:"PORT" env-default:"8080"`
 
 	AllowedOrigins stringList `env:"ALLOWED_ORIGINS"`
@@ -22,6 +19,12 @@ type Config struct {
 	Domain string `env:"DOMAIN" env-required:"true"`
 
 	DSN string `env:"DSN" env-required:"true"`
+
+	GoogleClientID     string `env:"GOOGLE_CLIENT_ID" env-required:"true"`
+	GoogleClientSecret string `env:"GOOGLE_CLIENT_SECRET" env-required:"true"`
+
+	GitHubClientID     string `env:"GITHUB_CLIENT_ID" env-required:"true"`
+	GitHubClientSecret string `env:"GITHUB_CLIENT_SECRET" env-required:"true"`
 }
 
 func MustLoadConfig() *Config {

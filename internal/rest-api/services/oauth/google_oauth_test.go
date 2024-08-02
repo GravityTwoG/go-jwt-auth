@@ -31,7 +31,7 @@ func TestParseGoogleJWT(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := oauth.ParseGoogleJWT(tt.args.token)
+			got, err := oauth.ParseEmailFromJWT(tt.args.token, "email")
 			if err != nil {
 				assert.Equal(t, tt.wantErr, err)
 			}

@@ -10,8 +10,6 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
-
-	"github.com/golang-jwt/jwt/v4"
 )
 
 type GoogleTokenClaims struct {
@@ -107,28 +105,10 @@ func (s *googleOAuthService) FetchUserEmail(
 		return "", domainerrors.NewErrUnknown(err)
 	}
 
-	claims, err := ParseGoogleJWT(dto.IDToken)
+	email, err := ParseEmailFromJWT(dto.IDToken, "email")
 	if err != nil {
 		return "", domainerrors.NewErrUnknown(err)
 	}
 
-	return claims.Email, nil
-}
-
-// just parse the token payload
-func ParseGoogleJWT(tokenString string) (*GoogleTokenClaims, error) {
-	token, _, err := new(jwt.Parser).ParseUnverified(tokenString, jwt.MapClaims{})
-	if err != nil {
-		return nil, err
-	}
-
-	claims, ok := token.Claims.(jwt.MapClaims)
-
-	if !ok {
-		return nil, fmt.Errorf("invalid token")
-	}
-
-	return &GoogleTokenClaims{
-		Email: claims["email"].(string),
-	}, nil
+	return email, nil
 }

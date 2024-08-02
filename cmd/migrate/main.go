@@ -106,5 +106,12 @@ func main() {
 		}
 	}
 
+	err = db.Model(&models.AuthProvider{}).Create(&models.AuthProvider{
+		Name: "github",
+	}).Error
+	if err != nil {
+		log.Printf("Error creating github auth provider: %v", err)
+	}
+
 	log.Println("Migrations complete")
 }

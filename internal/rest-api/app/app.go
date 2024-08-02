@@ -88,6 +88,11 @@ func Run() {
 		cfg.GoogleClientSecret,
 	)
 
+	githubOAuthService := oauth.NewGitHubOAuthService(
+		cfg.GitHubClientID,
+		cfg.GitHubClientSecret,
+	)
+
 	authService := services.NewAuthService(
 		trManager,
 
@@ -101,6 +106,7 @@ func Run() {
 
 		map[string]oauth.OAuthService{
 			"google": googleOAuthService,
+			"github": githubOAuthService,
 		},
 	)
 
