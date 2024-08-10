@@ -118,7 +118,7 @@ func TestAuthService_Register(t *testing.T) {
 			mockUserAuthProviderRepo := new(mocks.MockedUserAuthProviderRepository)
 
 			mockUserAuthProviderRepo.
-				On("Create", mock.Anything, mock.Anything, mock.Anything).
+				On("Create", mock.Anything, mock.Anything, mock.Anything, mock.Anything).
 				Return(nil)
 
 			mockTRManager := new(mocks.MockedTRManager)
@@ -281,6 +281,7 @@ func TestAuthService_Login(t *testing.T) {
 				On("GetByUserID", mock.Anything, mock.Anything).
 				Return([]*entities.UserAuthProvider{
 					entities.UserAuthProviderFromDB(
+						"test@example.com",
 						1,
 						1,
 						services.LocalAuthProvider,

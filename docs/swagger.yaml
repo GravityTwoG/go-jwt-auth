@@ -12,6 +12,21 @@ definitions:
       refreshTokenTTLsec:
         type: integer
     type: object
+  go-jwt-auth_internal_rest-api_dto.ConnectOAuthDTO:
+    properties:
+      code:
+        type: string
+      redirectURL:
+        type: string
+    required:
+    - code
+    - redirectURL
+    type: object
+  go-jwt-auth_internal_rest-api_dto.ConnectOAuthResponseDTO:
+    properties:
+      message:
+        type: string
+    type: object
   go-jwt-auth_internal_rest-api_dto.ErrorResponseDTO:
     properties:
       code:
@@ -131,6 +146,13 @@ definitions:
           $ref: '#/definitions/go-jwt-auth_internal_rest-api_dto.SessionDTO'
         type: array
     type: object
+  go-jwt-auth_internal_rest-api_dto.UserAuthProviderDTO:
+    properties:
+      email:
+        type: string
+      name:
+        type: string
+    type: object
   go-jwt-auth_internal_rest-api_dto.UserDTO:
     properties:
       email:
@@ -148,6 +170,36 @@ info:
   title: Go JWT Auth API
   version: "1.0"
 paths:
+  /auth/{provider}/connect-callback:
+    post:
+      consumes:
+      - application/json
+      description: Connects oauth provider
+      parameters:
+      - description: ConnectOAuthDTO
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/go-jwt-auth_internal_rest-api_dto.ConnectOAuthDTO'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/go-jwt-auth_internal_rest-api_dto.ConnectOAuthResponseDTO'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/go-jwt-auth_internal_rest-api_dto.ErrorResponseDTO'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/go-jwt-auth_internal_rest-api_dto.ErrorResponseDTO'
+      summary: Connect oauth provider
+      tags:
+      - Auth
   /auth/{provider}/consent:
     get:
       description: Logins user, also sets refresh token in cookie
@@ -347,7 +399,7 @@ paths:
           description: OK
           schema:
             items:
-              type: string
+              $ref: '#/definitions/go-jwt-auth_internal_rest-api_dto.UserAuthProviderDTO'
             type: array
       summary: Get user auth providers
       tags:

@@ -56,9 +56,11 @@ func NewAuthController(
 
 	auth.GET("/oauth-providers", ac.getSupportedOAuthProviders)
 
-	auth.GET("/:provider/consent", anonMiddleware, ac.requestConsentURL)
+	auth.GET("/:provider/consent", ac.requestConsentURL)
 	auth.POST("/:provider/register-callback", anonMiddleware, ac.registerWithOAuth)
 	auth.POST("/:provider/login-callback", anonMiddleware, ac.loginWithOAuth)
+	// user must be logged in to connect oauth provider
+	auth.POST("/:provider/connect-callback", authMiddleware, ac.connectOAuth)
 
 	auth.POST("/logout", authMiddleware, ac.logout)
 	auth.POST("/logout-all", authMiddleware, ac.logoutAll)
@@ -315,6 +317,59 @@ func (ac *authController) loginWithOAuth(c *gin.Context) {
 }
 
 // @Tags		Auth
+// @Summary	Connect oauth provider
+// @Description Connects oauth provider
+// @Accept		json
+// @Produce	json
+// @Param		body	body		dto.ConnectOAuthDTO	true	"ConnectOAuthDTO"
+// @Success	200		{object}	dto.ConnectOAuthResponseDTO
+// @Failure	400		{object}	dto.ErrorResponseDTO
+// @Failure	401		{object}	dto.ErrorResponseDTO
+// @Router		/auth/{provider}/connect-callback [post]
+func (ac *authController) connectOAuth(c *gin.Context) {
+	provider := c.Param("provider")
+	if provider == "" {
+		writeError(c, domainerrors.NewErrInvalidInput(
+			"INVALID_PROVIDER",
+			"provider is required",
+		))
+		return
+	}
+
+	user := middlewares.ExtractUser(c)
+	if user == nil {
+		writeError(c, domainerrors.NewErrUnknown(
+			errors.New("internal server error"),
+		))
+		return
+	}
+
+	connectOAuthDTO, err := ginutils.DecodeJSON[*dto.ConnectOAuthDTO](c)
+	if err != nil {
+		writeError(c, domainerrors.NewErrInvalidInput(
+			"INVALID_BODY",
+			err.Error(),
+		))
+		return
+	}
+
+	derr := ac.authService.ConnectOAuth(
+		c,
+		provider,
+		connectOAuthDTO,
+		user.ID,
+	)
+	if derr != nil {
+		writeError(c, derr)
+		return
+	}
+
+	c.JSON(http.StatusOK, &dto.ConnectOAuthResponseDTO{
+		Message: "Connected",
+	})
+}
+
+// @Tags		Auth
 // @Summary	Refresh tokens
 // @Description Refreshes tokens, also sets new refresh token in cookie
 // @Security	ApiKeyAuth
@@ -420,7 +475,7 @@ func (ac *authController) activeSessions(c *gin.Context) {
 // @Summary	Get user auth providers
 // @Description	Get user auth providers
 // @Produce	json
-// @Success	200	{object}	[]string
+// @Success	200	{object}	[]dto.UserAuthProviderDTO
 // @Router		/auth/me/auth-providers [get]
 func (ac *authController) getAuthProviders(c *gin.Context) {
 	userID := middlewares.ExtractUser(c).ID
@@ -434,7 +489,15 @@ func (ac *authController) getAuthProviders(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, providers)
+	providersDTO := make([]dto.UserAuthProviderDTO, 0, len(providers))
+	for i := 0; i < len(providers); i++ {
+		providersDTO = append(providersDTO, dto.UserAuthProviderDTO{
+			Name:  providers[i].GetName(),
+			Email: providers[i].GetEmail(),
+		})
+	}
+
+	c.JSON(http.StatusOK, providersDTO)
 }
 
 // @Tags		Auth
@@ -562,34 +625,4 @@ func (ac *authController) resetRefreshTokenCookie(
 ) {
 	c.SetSameSite(http.SameSiteNoneMode)
 	c.SetCookie(cookieName, "", -1, ac.path, ac.domain, true, true)
-}
-
-func writeError(
-	c *gin.Context,
-	err domainerrors.ErrDomain,
-) {
-	status := http.StatusInternalServerError
-
-	switch {
-	case err.Kind() == domainerrors.EntityNotFound:
-		status = http.StatusNotFound
-	case err.Kind() == domainerrors.EntityAlreadyExists:
-		status = http.StatusConflict
-	case err.Kind() == domainerrors.InvalidInput:
-		status = http.StatusBadRequest
-	}
-
-	writeErrorWithStatus(c, status, err)
-}
-
-func writeErrorWithStatus(
-	c *gin.Context,
-	status int,
-	err domainerrors.ErrDomain,
-) {
-	c.JSON(status, gin.H{
-		"kind":  err.Kind(),
-		"code":  err.Code(),
-		"error": err.Error(),
-	})
 }

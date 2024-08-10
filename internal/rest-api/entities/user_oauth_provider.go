@@ -3,6 +3,7 @@ package entities
 import "time"
 
 type UserAuthProvider struct {
+	email          string
 	userID         uint
 	authProviderID uint
 
@@ -12,18 +13,8 @@ type UserAuthProvider struct {
 	updatedAt time.Time
 }
 
-func NewUserAuthProvider(
-	userID uint,
-	providerName string,
-) *UserAuthProvider {
-	return &UserAuthProvider{
-		userID:         userID,
-		authProviderID: 0,
-		name:           providerName,
-	}
-}
-
 func UserAuthProviderFromDB(
+	email string,
 	userID uint,
 	authProviderID uint,
 
@@ -33,6 +24,7 @@ func UserAuthProviderFromDB(
 	updatedAt time.Time,
 ) *UserAuthProvider {
 	return &UserAuthProvider{
+		email:          email,
 		userID:         userID,
 		authProviderID: authProviderID,
 		name:           name,
@@ -40,6 +32,10 @@ func UserAuthProviderFromDB(
 		createdAt: createdAt,
 		updatedAt: updatedAt,
 	}
+}
+
+func (u *UserAuthProvider) GetEmail() string {
+	return u.email
 }
 
 func (u *UserAuthProvider) GetUserID() uint {

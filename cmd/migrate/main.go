@@ -113,5 +113,25 @@ func main() {
 		log.Printf("Error creating github auth provider: %v", err)
 	}
 
+	if !db.Migrator().HasColumn(&models.UserAuthProvider{}, "email") {
+		log.Println("Adding email column to user auth providers table")
+		err = db.Migrator().AddColumn(&models.UserAuthProvider{}, "email")
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		err = db.
+			Exec("ALTER TABLE user_auth_providers ADD CONSTRAINT unique_email_provider_id unique (email, auth_provider_id)").
+			Error
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		err = db.Exec("UPDATE user_auth_providers SET email = users.email FROM users WHERE user_auth_providers.user_id = users.id;").Error
+		if err != nil {
+			log.Fatal(err)
+		}
+	}
+
 	log.Println("Migrations complete")
 }

@@ -113,12 +113,19 @@ type UserAuthProviderRepository interface {
 		ctx context.Context,
 		userID uint,
 		providerName string,
+		email string,
 	) domainerrors.ErrDomain
 
 	GetByUserID(
 		ctx context.Context,
 		userID uint,
 	) ([]*entities.UserAuthProvider, domainerrors.ErrDomain)
+
+	GetByEmailAndProvider(
+		ctx context.Context,
+		email string,
+		providerName string,
+	) (*entities.UserAuthProvider, domainerrors.ErrDomain)
 
 	Delete(
 		ctx context.Context,
@@ -184,6 +191,13 @@ type AuthService interface {
 		dto *dto.LoginWithOAuthDTO,
 	) (*entities.User, *Tokens, domainerrors.ErrDomain)
 
+	ConnectOAuth(
+		ctx context.Context,
+		provider string,
+		connectOAuthDTO *dto.ConnectOAuthDTO,
+		userID uint,
+	) domainerrors.ErrDomain
+
 	RefreshTokens(
 		ctx context.Context,
 		dto *RefreshTokensDTO,
@@ -202,7 +216,7 @@ type AuthService interface {
 	GetAuthProviders(
 		ctx context.Context,
 		userID uint,
-	) ([]string, domainerrors.ErrDomain)
+	) ([]*entities.UserAuthProvider, domainerrors.ErrDomain)
 
 	GetConfig(ctx context.Context) *dto.ConfigDTO
 
@@ -333,7 +347,12 @@ func (s *authService) register(
 		return nil, nil, err
 	}
 
-	err = s.userAuthProviderRepository.Create(ctx, user.GetID(), provider)
+	err = s.userAuthProviderRepository.Create(
+		ctx,
+		user.GetID(),
+		provider,
+		user.GetEmail(),
+	)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -539,32 +558,25 @@ func (s *authService) LoginWithOAuth(
 		return nil, nil, err
 	}
 
-	user, err := s.userRepo.GetByEmail(ctx, email)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	// check if user has auth provider
-	authProviders, err := s.userAuthProviderRepository.GetByUserID(
+	userOAuthProvider, err := s.userAuthProviderRepository.GetByEmailAndProvider(
 		ctx,
-		user.GetID(),
+		email,
+		provider,
 	)
 	if err != nil {
+		if err.Kind() == domainerrors.EntityNotFound {
+			return nil, nil, domainerrors.NewErrEntityNotFound(
+				HasNoAuthProvider,
+				"user has no auth provider: "+provider,
+			)
+		}
+
 		return nil, nil, err
 	}
 
-	hasLocalAuthProvider := slices.ContainsFunc(
-		authProviders,
-		func(authProvider *entities.UserAuthProvider) bool {
-			return authProvider.GetName() == provider
-		},
-	)
-
-	if !hasLocalAuthProvider {
-		return nil, nil, domainerrors.NewErrEntityNotFound(
-			HasNoAuthProvider,
-			"user has no auth provider: "+provider,
-		)
+	user, err := s.userRepo.GetByID(ctx, userOAuthProvider.GetUserID())
+	if err != nil {
+		return nil, nil, err
 	}
 
 	tokens, err := s.createTokensPair(
@@ -579,6 +591,42 @@ func (s *authService) LoginWithOAuth(
 	}
 
 	return user, tokens, nil
+}
+
+func (s *authService) ConnectOAuth(
+	ctx context.Context,
+	provider string,
+	connectOAuthDTO *dto.ConnectOAuthDTO,
+	userID uint,
+) domainerrors.ErrDomain {
+	oauthService, ok := s.oauthServices[provider]
+	if !ok {
+		return domainerrors.NewErrInvalidInput(
+			"INVALID_PROVIDER",
+			"provider is not supported",
+		)
+	}
+
+	email, err := oauthService.FetchUserEmail(
+		ctx,
+		connectOAuthDTO.Code,
+		connectOAuthDTO.RedirectURL,
+	)
+	if err != nil {
+		return err
+	}
+
+	err = s.userAuthProviderRepository.Create(
+		ctx,
+		userID,
+		provider,
+		email,
+	)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (s *authService) RefreshTokens(
@@ -714,7 +762,7 @@ func (s *authService) GetActiveSessions(
 func (s *authService) GetAuthProviders(
 	ctx context.Context,
 	userID uint,
-) ([]string, domainerrors.ErrDomain) {
+) ([]*entities.UserAuthProvider, domainerrors.ErrDomain) {
 	userAuthProviders, err := s.userAuthProviderRepository.GetByUserID(
 		ctx,
 		userID,
@@ -723,12 +771,7 @@ func (s *authService) GetAuthProviders(
 		return nil, err
 	}
 
-	providers := make([]string, 0, len(userAuthProviders))
-	for i := 0; i < len(userAuthProviders); i++ {
-		providers = append(providers, userAuthProviders[i].GetName())
-	}
-
-	return providers, nil
+	return userAuthProviders, nil
 }
 
 func (s *authService) GetConfig(

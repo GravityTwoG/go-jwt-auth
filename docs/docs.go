@@ -222,7 +222,7 @@ const docTemplate = `{
                         "schema": {
                             "type": "array",
                             "items": {
-                                "type": "string"
+                                "$ref": "#/definitions/go-jwt-auth_internal_rest-api_dto.UserAuthProviderDTO"
                             }
                         }
                     }
@@ -329,6 +329,52 @@ const docTemplate = `{
                     },
                     "400": {
                         "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/go-jwt-auth_internal_rest-api_dto.ErrorResponseDTO"
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/{provider}/connect-callback": {
+            "post": {
+                "description": "Connects oauth provider",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "Connect oauth provider",
+                "parameters": [
+                    {
+                        "description": "ConnectOAuthDTO",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/go-jwt-auth_internal_rest-api_dto.ConnectOAuthDTO"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/go-jwt-auth_internal_rest-api_dto.ConnectOAuthResponseDTO"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/go-jwt-auth_internal_rest-api_dto.ErrorResponseDTO"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
                         "schema": {
                             "$ref": "#/definitions/go-jwt-auth_internal_rest-api_dto.ErrorResponseDTO"
                         }
@@ -468,6 +514,29 @@ const docTemplate = `{
                 },
                 "refreshTokenTTLsec": {
                     "type": "integer"
+                }
+            }
+        },
+        "go-jwt-auth_internal_rest-api_dto.ConnectOAuthDTO": {
+            "type": "object",
+            "required": [
+                "code",
+                "redirectURL"
+            ],
+            "properties": {
+                "code": {
+                    "type": "string"
+                },
+                "redirectURL": {
+                    "type": "string"
+                }
+            }
+        },
+        "go-jwt-auth_internal_rest-api_dto.ConnectOAuthResponseDTO": {
+            "type": "object",
+            "properties": {
+                "message": {
+                    "type": "string"
                 }
             }
         },
@@ -648,6 +717,17 @@ const docTemplate = `{
                     "items": {
                         "$ref": "#/definitions/go-jwt-auth_internal_rest-api_dto.SessionDTO"
                     }
+                }
+            }
+        },
+        "go-jwt-auth_internal_rest-api_dto.UserAuthProviderDTO": {
+            "type": "object",
+            "properties": {
+                "email": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
                 }
             }
         },

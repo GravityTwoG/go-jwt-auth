@@ -32,6 +32,7 @@ func (r *userAuthProviderRepository) Create(
 	ctx context.Context,
 	userID uint,
 	providerName string,
+	email string,
 ) domainerrors.ErrDomain {
 
 	authProvider := &models.AuthProvider{}
@@ -47,6 +48,7 @@ func (r *userAuthProviderRepository) Create(
 		DefaultTrOrDB(ctx, r.db).
 		Preload("AuthProvider").
 		Create(&models.UserAuthProvider{
+			Email:          email,
 			UserID:         userID,
 			AuthProviderID: authProvider.ID,
 		}).Error
@@ -82,6 +84,37 @@ func (r *userAuthProviderRepository) GetByUserID(
 	}
 
 	return entities, nil
+}
+
+func (r *userAuthProviderRepository) GetByEmailAndProvider(
+	ctx context.Context,
+	email string,
+	providerName string,
+) (*entities.UserAuthProvider, domainerrors.ErrDomain) {
+
+	authProvider := &models.AuthProvider{}
+	err := r.txGetter.
+		DefaultTrOrDB(ctx, r.db).
+		Where(&models.AuthProvider{Name: providerName}).
+		First(authProvider).Error
+	if err != nil {
+		return nil, database.MapGormErrors(err, "auth provider")
+	}
+
+	userAuthProvider := &models.UserAuthProvider{}
+	err = r.txGetter.
+		DefaultTrOrDB(ctx, r.db).
+		Where(&models.UserAuthProvider{
+			Email:          email,
+			AuthProviderID: authProvider.ID,
+		}).
+		First(userAuthProvider).Error
+
+	if err != nil {
+		return nil, database.MapGormErrors(err, "user auth provider")
+	}
+
+	return models.UserAuthProviderFromModel(userAuthProvider), nil
 }
 
 func (r *userAuthProviderRepository) Delete(

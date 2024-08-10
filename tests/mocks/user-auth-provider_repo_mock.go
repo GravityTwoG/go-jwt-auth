@@ -16,8 +16,9 @@ func (m *MockedUserAuthProviderRepository) Create(
 	ctx context.Context,
 	userID uint,
 	providerName string,
+	email string,
 ) domainerrors.ErrDomain {
-	args := m.Called(ctx, userID, providerName)
+	args := m.Called(ctx, userID, providerName, email)
 
 	err := args.Error(0)
 	if err != nil {
@@ -41,6 +42,23 @@ func (m *MockedUserAuthProviderRepository) GetByUserID(
 	}
 
 	return userAuthProvider.([]*entities.UserAuthProvider), nil
+}
+
+func (m *MockedUserAuthProviderRepository) GetByEmailAndProvider(
+	ctx context.Context,
+	email string,
+	providerName string,
+) (*entities.UserAuthProvider, domainerrors.ErrDomain) {
+	args := m.Called(ctx, email, providerName)
+
+	userAuthProvider := args.Get(0)
+	err := args.Error(1)
+
+	if err != nil {
+		return nil, err.(domainerrors.ErrDomain)
+	}
+
+	return userAuthProvider.(*entities.UserAuthProvider), nil
 }
 
 func (m *MockedUserAuthProviderRepository) Delete(

@@ -14,11 +14,13 @@ type AuthProvider struct {
 }
 
 type UserAuthProvider struct {
+	Email string `gorm:"not null,default:'',uniqueIndex:idx_auth_provider_email"`
+
 	// composite primary key (user_id, oauth_provider_id)
 	UserID uint `gorm:"primarykey"`
 	User   User `gorm:"onDelete:CASCADE"`
 
-	AuthProviderID uint         `gorm:"primarykey"`
+	AuthProviderID uint         `gorm:"primarykey,uniqueIndex:idx_auth_provider_email"`
 	AuthProvider   AuthProvider `gorm:"onDelete:CASCADE"`
 
 	CreatedAt time.Time
@@ -40,6 +42,7 @@ func UserAuthProviderFromModel(
 	model *UserAuthProvider,
 ) *entities.UserAuthProvider {
 	return entities.UserAuthProviderFromDB(
+		model.Email,
 		model.UserID,
 		model.AuthProviderID,
 
