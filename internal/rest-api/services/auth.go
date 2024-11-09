@@ -173,7 +173,7 @@ type AuthService interface {
 		ctx context.Context,
 		provider string,
 		redirectURL string,
-	) (string, domainerrors.ErrDomain)
+	) (*oauth.OAuthConsentDTO, domainerrors.ErrDomain)
 
 	RegisterWithOAuth(
 		ctx context.Context,
@@ -484,10 +484,10 @@ func (s *authService) RequestConsentURL(
 	ctx context.Context,
 	provider string,
 	redirectURL string,
-) (string, domainerrors.ErrDomain) {
+) (*oauth.OAuthConsentDTO, domainerrors.ErrDomain) {
 	oauthService, ok := s.oauthServices[provider]
 	if !ok {
-		return "", domainerrors.NewErrInvalidInput(
+		return nil, domainerrors.NewErrInvalidInput(
 			"INVALID_PROVIDER",
 			"provider is not supported",
 		)
@@ -496,7 +496,7 @@ func (s *authService) RequestConsentURL(
 	return oauthService.RequestConsentURL(
 		ctx,
 		redirectURL,
-	), nil
+	)
 }
 
 func (s *authService) RegisterWithOAuth(
@@ -516,6 +516,8 @@ func (s *authService) RegisterWithOAuth(
 	email, err := oauthService.FetchUserEmail(
 		ctx,
 		registerWithOAuthDTO.Code,
+		registerWithOAuthDTO.CodeVerifier,
+		registerWithOAuthDTO.DeviceID,
 		registerWithOAuthDTO.RedirectURL,
 	)
 
@@ -552,6 +554,8 @@ func (s *authService) LoginWithOAuth(
 	email, err := oauthService.FetchUserEmail(
 		ctx,
 		dto.Code,
+		dto.CodeVerifier,
+		dto.DeviceID,
 		dto.RedirectURL,
 	)
 	if err != nil {
@@ -610,6 +614,8 @@ func (s *authService) ConnectOAuth(
 	email, err := oauthService.FetchUserEmail(
 		ctx,
 		connectOAuthDTO.Code,
+		connectOAuthDTO.CodeVerifier,
+		connectOAuthDTO.DeviceID,
 		connectOAuthDTO.RedirectURL,
 	)
 	if err != nil {

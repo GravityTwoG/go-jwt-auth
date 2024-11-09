@@ -7,9 +7,11 @@ type LoginDTO struct {
 }
 
 type LoginWithOAuthDTO struct {
-	Code        string `json:"code" binding:"required"`
-	FingerPrint string `json:"fingerPrint" binding:"required"`
-	RedirectURL string `json:"redirectURL" binding:"required"`
+	Code         string `json:"code" binding:"required"`
+	CodeVerifier string `json:"codeVerifier" binding:"required"`
+	DeviceID     string `json:"deviceId"`
+	FingerPrint  string `json:"fingerPrint" binding:"required"`
+	RedirectURL  string `json:"redirectURL" binding:"required"`
 }
 
 type LoginResponseDTO struct {

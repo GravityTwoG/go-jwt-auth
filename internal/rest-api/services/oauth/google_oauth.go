@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	domainerrors "go-jwt-auth/internal/rest-api/domain-errors"
+	oauthutils "go-jwt-auth/internal/rest-api/services/oauth/utils"
 	"io"
 	"net/http"
 	"net/url"
@@ -12,63 +13,78 @@ import (
 	"strings"
 )
 
+// https://developers.google.com/identity/protocols/oauth2/web-server#httprest
+const googleAuthorizeURL = "https://accounts.google.com/o/oauth2/v2/auth"
+const googleExchangeURL = "https://www.googleapis.com/oauth2/v4/token"
+
 type GoogleTokenClaims struct {
 	Email string `json:"email"`
 }
 
 type googleOAuthService struct {
-	googleClientID     string
-	googleClientSecret string
+	clientID     string
+	clientSecret string
 }
 
 func NewGoogleOAuthService(googleClientID string,
 	googleClientSecret string) OAuthService {
 	return &googleOAuthService{
-		googleClientID:     googleClientID,
-		googleClientSecret: googleClientSecret,
+		clientID:     googleClientID,
+		clientSecret: googleClientSecret,
 	}
 }
 
 func (s *googleOAuthService) RequestConsentURL(
 	ctx context.Context,
 	redirectURL string,
-) string {
-	// https://developers.google.com/identity/protocols/oauth2/web-server#httprest
-	endpoint := "https://accounts.google.com/o/oauth2/v2/auth"
+) (*OAuthConsentDTO, domainerrors.ErrDomain) {
+
+	pkce, err := oauthutils.GetPKCE()
+	if err != nil {
+		return nil, domainerrors.NewErrUnknown(err)
+	}
 
 	responseType := "code"
 
 	// https://developers.google.com/identity/protocols/oauth2/scopes#oauth2
 	scope := "https://www.googleapis.com/auth/userinfo.email"
 
-	return fmt.Sprintf(
-		"%s?client_id=%s&redirect_uri=%s&response_type=%s&scope=%s",
-		endpoint,
-		s.googleClientID,
+	redirectURL = fmt.Sprintf(
+		"%s?client_id=%s&redirect_uri=%s&response_type=%s&scope=%s&code_challenge=%s&code_challenge_method=%s",
+		googleAuthorizeURL,
+		s.clientID,
 		redirectURL,
 		responseType,
 		scope,
+		pkce.CodeChallenge,
+		pkce.CodeChallengeMethod,
 	)
+
+	return &OAuthConsentDTO{
+		RedirectURL:  redirectURL,
+		CodeVerifier: pkce.CodeVerifier,
+	}, nil
 }
 
 func (s *googleOAuthService) FetchUserEmail(
 	ctx context.Context,
 	code string,
+	codeVerifier string,
+	deviceID string,
 	redirectURL string,
 ) (string, domainerrors.ErrDomain) {
-	endpoint := "https://www.googleapis.com/oauth2/v4/token"
-
 	client := &http.Client{}
 
 	form := url.Values{}
 	form.Add("code", code)
-	form.Add("client_id", s.googleClientID)
-	form.Add("client_secret", s.googleClientSecret)
+	form.Add("code_verifier", codeVerifier)
+	form.Add("client_id", s.clientID)
+	form.Add("client_secret", s.clientSecret)
 	form.Add("redirect_uri", redirectURL)
 	form.Add("grant_type", "authorization_code")
 
 	req, err := http.NewRequestWithContext(
-		ctx, "POST", endpoint,
+		ctx, "POST", googleExchangeURL,
 		strings.NewReader(form.Encode()),
 	)
 	if err != nil {

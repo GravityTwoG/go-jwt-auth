@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	domainerrors "go-jwt-auth/internal/rest-api/domain-errors"
+	oauthutils "go-jwt-auth/internal/rest-api/services/oauth/utils"
 	"io"
 	"net/http"
 	"net/url"
@@ -12,42 +13,57 @@ import (
 	"strings"
 )
 
+// https://docs.github.com/en/developers/apps/building-oauth-apps/authorizing-oauth-apps#web-application-flow
+const githubAuthorizeURL = "https://github.com/login/oauth/authorize"
+const githubExchangeURL = "https://github.com/login/oauth/access_token"
+
 type githubOAuthService struct {
-	githubClientID     string
-	githubClientSecret string
+	clientID     string
+	clientSecret string
 }
 
 func NewGitHubOAuthService(
-	githubClientID string,
-	githubClientSecret string,
+	clientID string,
+	clientSecret string,
 ) OAuthService {
 	return &githubOAuthService{
-		githubClientID:     githubClientID,
-		githubClientSecret: githubClientSecret,
+		clientID:     clientID,
+		clientSecret: clientSecret,
 	}
 }
 
 func (s *githubOAuthService) RequestConsentURL(
 	ctx context.Context,
 	redirectURL string,
-) string {
-	// https://docs.github.com/en/developers/apps/building-oauth-apps/authorizing-oauth-apps#web-application-flow
-	endpoint := "https://github.com/login/oauth/authorize"
+) (*OAuthConsentDTO, domainerrors.ErrDomain) {
+	pkce, err := oauthutils.GetPKCE()
+	if err != nil {
+		return nil, domainerrors.NewErrUnknown(err)
+	}
 
-	return fmt.Sprintf(
-		"%s?client_id=%s&scope=user&redirect_uri=%s",
-		endpoint,
-		s.githubClientID,
+	redirectURL = fmt.Sprintf(
+		"%s?client_id=%s&scope=user&redirect_uri=%s&state=&code_challenge=%s&code_challenge_method=%s",
+		githubAuthorizeURL,
+		s.clientID,
 		redirectURL,
+		pkce.CodeChallenge,
+		pkce.CodeChallengeMethod,
 	)
+
+	return &OAuthConsentDTO{
+		RedirectURL:  redirectURL,
+		CodeVerifier: pkce.CodeVerifier,
+	}, nil
 }
 
 func (s *githubOAuthService) FetchUserEmail(
 	ctx context.Context,
 	code string,
+	codeVerifier string,
+	deviceID string,
 	redirectURL string,
 ) (string, domainerrors.ErrDomain) {
-	accessToken, err := s.GetAccessToken(ctx, code, redirectURL)
+	accessToken, err := s.getAccessToken(ctx, code, codeVerifier, redirectURL)
 	if err != nil {
 		return "", err
 	}
@@ -97,23 +113,23 @@ func (s *githubOAuthService) FetchUserEmail(
 	return primaryEmail, nil
 }
 
-func (s *githubOAuthService) GetAccessToken(
+func (s *githubOAuthService) getAccessToken(
 	ctx context.Context,
 	code string,
+	codeVerifier string,
 	redirectURL string,
 ) (string, domainerrors.ErrDomain) {
-	endpoint := "https://github.com/login/oauth/access_token"
-
 	client := &http.Client{}
 
 	form := url.Values{}
-	form.Add("client_id", s.githubClientID)
-	form.Add("client_secret", s.githubClientSecret)
+	form.Add("client_id", s.clientID)
+	form.Add("client_secret", s.clientSecret)
 	form.Add("code", code)
+	form.Add("code_verifier", codeVerifier)
 	form.Add("redirect_uri", redirectURL)
 
 	req, err := http.NewRequestWithContext(
-		ctx, "POST", endpoint,
+		ctx, "POST", githubExchangeURL,
 		strings.NewReader(form.Encode()),
 	)
 	if err != nil {

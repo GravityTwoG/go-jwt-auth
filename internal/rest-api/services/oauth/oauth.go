@@ -8,15 +8,22 @@ import (
 	"github.com/golang-jwt/jwt/v4"
 )
 
+type OAuthConsentDTO struct {
+	RedirectURL  string
+	CodeVerifier string
+}
+
 type OAuthService interface {
 	RequestConsentURL(
 		ctx context.Context,
 		redirectURL string,
-	) string
+	) (*OAuthConsentDTO, domainerrors.ErrDomain)
 
 	FetchUserEmail(
 		ctx context.Context,
 		code string,
+		codeVerifier string,
+		deviceID string,
 		redirectURL string,
 	) (string, domainerrors.ErrDomain)
 }

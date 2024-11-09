@@ -197,7 +197,7 @@ func (ac *authController) requestConsentURL(c *gin.Context) {
 		return
 	}
 
-	oauthConsentURL, err := ac.authService.RequestConsentURL(
+	oauthConsentDTO, err := ac.authService.RequestConsentURL(
 		c,
 		provider,
 		redirectURL,
@@ -208,7 +208,8 @@ func (ac *authController) requestConsentURL(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, &dto.OAuthRedirectDTO{
-		RedirectURL: oauthConsentURL,
+		RedirectURL:  oauthConsentDTO.RedirectURL,
+		CodeVerifier: oauthConsentDTO.CodeVerifier,
 	})
 }
 
