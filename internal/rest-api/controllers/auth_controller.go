@@ -89,7 +89,7 @@ func (ac *authController) register(c *gin.Context) {
 
 	registerDTO, err := ginutils.DecodeJSON[*dto.RegisterDTO](c)
 	if err != nil {
-		writeError(c, domainerrors.NewErrInvalidInput(
+		ginutils.WriteError(c, domainerrors.NewErrInvalidInput(
 			"INVALID_BODY",
 			err.Error(),
 		))
@@ -104,7 +104,7 @@ func (ac *authController) register(c *gin.Context) {
 		services.LocalAuthProvider,
 	)
 	if derr != nil {
-		writeError(c, derr)
+		ginutils.WriteError(c, derr)
 		return
 	}
 
@@ -131,7 +131,7 @@ func (ac *authController) login(c *gin.Context) {
 
 	loginDTO, err := ginutils.DecodeJSON[*dto.LoginDTO](c)
 	if err != nil {
-		writeError(c, domainerrors.NewErrInvalidInput(
+		ginutils.WriteError(c, domainerrors.NewErrInvalidInput(
 			"INVALID_BODY",
 			err.Error(),
 		))
@@ -148,7 +148,7 @@ func (ac *authController) login(c *gin.Context) {
 		userAgent,
 	)
 	if derr != nil {
-		writeError(c, derr)
+		ginutils.WriteError(c, derr)
 		return
 	}
 
@@ -181,7 +181,7 @@ func (ac *authController) getSupportedOAuthProviders(c *gin.Context) {
 func (ac *authController) requestConsentURL(c *gin.Context) {
 	provider := c.Param("provider")
 	if provider == "" {
-		writeError(c, domainerrors.NewErrInvalidInput(
+		ginutils.WriteError(c, domainerrors.NewErrInvalidInput(
 			"INVALID_PROVIDER",
 			"provider is required",
 		))
@@ -190,7 +190,7 @@ func (ac *authController) requestConsentURL(c *gin.Context) {
 
 	redirectURL := c.Query("redirectURL")
 	if redirectURL == "" {
-		writeError(c, domainerrors.NewErrInvalidInput(
+		ginutils.WriteError(c, domainerrors.NewErrInvalidInput(
 			"INVALID_QUERY_PARAMS",
 			"redirectURL is required",
 		))
@@ -203,7 +203,7 @@ func (ac *authController) requestConsentURL(c *gin.Context) {
 		redirectURL,
 	)
 	if err != nil {
-		writeError(c, err)
+		ginutils.WriteError(c, err)
 		return
 	}
 
@@ -224,7 +224,7 @@ func (ac *authController) requestConsentURL(c *gin.Context) {
 func (ac *authController) registerWithOAuth(c *gin.Context) {
 	provider := c.Param("provider")
 	if provider == "" {
-		writeError(c, domainerrors.NewErrInvalidInput(
+		ginutils.WriteError(c, domainerrors.NewErrInvalidInput(
 			"INVALID_PROVIDER",
 			"provider is required",
 		))
@@ -236,7 +236,7 @@ func (ac *authController) registerWithOAuth(c *gin.Context) {
 
 	registerWithOAuthDTO, err := ginutils.DecodeJSON[*dto.RegisterWithOAuthDTO](c)
 	if err != nil {
-		writeError(c, domainerrors.NewErrInvalidInput(
+		ginutils.WriteError(c, domainerrors.NewErrInvalidInput(
 			"INVALID_BODY",
 			err.Error(),
 		))
@@ -251,7 +251,7 @@ func (ac *authController) registerWithOAuth(c *gin.Context) {
 		userAgent,
 	)
 	if derr != nil {
-		writeError(c, derr)
+		ginutils.WriteError(c, derr)
 		return
 	}
 
@@ -277,7 +277,7 @@ func (ac *authController) registerWithOAuth(c *gin.Context) {
 func (ac *authController) loginWithOAuth(c *gin.Context) {
 	provider := c.Param("provider")
 	if provider == "" {
-		writeError(c, domainerrors.NewErrInvalidInput(
+		ginutils.WriteError(c, domainerrors.NewErrInvalidInput(
 			"INVALID_PROVIDER",
 			"provider is required",
 		))
@@ -289,7 +289,7 @@ func (ac *authController) loginWithOAuth(c *gin.Context) {
 
 	loginWithOAuthDTO, err := ginutils.DecodeJSON[*dto.LoginWithOAuthDTO](c)
 	if err != nil {
-		writeError(c, domainerrors.NewErrInvalidInput(
+		ginutils.WriteError(c, domainerrors.NewErrInvalidInput(
 			"INVALID_BODY",
 			err.Error(),
 		))
@@ -304,7 +304,7 @@ func (ac *authController) loginWithOAuth(c *gin.Context) {
 		loginWithOAuthDTO,
 	)
 	if derr != nil {
-		writeError(c, derr)
+		ginutils.WriteError(c, derr)
 		return
 	}
 
@@ -330,7 +330,7 @@ func (ac *authController) loginWithOAuth(c *gin.Context) {
 func (ac *authController) connectOAuth(c *gin.Context) {
 	provider := c.Param("provider")
 	if provider == "" {
-		writeError(c, domainerrors.NewErrInvalidInput(
+		ginutils.WriteError(c, domainerrors.NewErrInvalidInput(
 			"INVALID_PROVIDER",
 			"provider is required",
 		))
@@ -339,7 +339,7 @@ func (ac *authController) connectOAuth(c *gin.Context) {
 
 	user := middlewares.ExtractUser(c)
 	if user == nil {
-		writeError(c, domainerrors.NewErrUnknown(
+		ginutils.WriteError(c, domainerrors.NewErrUnknown(
 			errors.New("internal server error"),
 		))
 		return
@@ -347,7 +347,7 @@ func (ac *authController) connectOAuth(c *gin.Context) {
 
 	connectOAuthDTO, err := ginutils.DecodeJSON[*dto.ConnectOAuthDTO](c)
 	if err != nil {
-		writeError(c, domainerrors.NewErrInvalidInput(
+		ginutils.WriteError(c, domainerrors.NewErrInvalidInput(
 			"INVALID_BODY",
 			err.Error(),
 		))
@@ -361,7 +361,7 @@ func (ac *authController) connectOAuth(c *gin.Context) {
 		user.ID,
 	)
 	if derr != nil {
-		writeError(c, derr)
+		ginutils.WriteError(c, derr)
 		return
 	}
 
@@ -383,16 +383,16 @@ func (ac *authController) connectOAuth(c *gin.Context) {
 func (ac *authController) refreshTokens(c *gin.Context) {
 	refreshTokensDTO, err := ginutils.DecodeJSON[*dto.RefreshTokensDTO](c)
 	if err != nil {
-		writeError(c, domainerrors.NewErrInvalidInput(
+		ginutils.WriteError(c, domainerrors.NewErrInvalidInput(
 			"INVALID_BODY",
 			err.Error(),
 		))
 		return
 	}
 
-	refreshToken, err := c.Cookie(cookieName)
-	if err != nil {
-		writeErrorWithStatus(
+	refreshToken, cookieErr := c.Cookie(cookieName)
+	if cookieErr != nil {
+		ginutils.WriteErrorWithStatus(
 			c,
 			http.StatusUnauthorized,
 			ErrRefreshTokenNotFound,
@@ -400,15 +400,14 @@ func (ac *authController) refreshTokens(c *gin.Context) {
 		return
 	}
 
-	tokens, derr := ac.authService.RefreshTokens(c, &services.RefreshTokensDTO{
+	tokens, err := ac.authService.RefreshTokens(c, &services.RefreshTokensDTO{
 		OldToken:    refreshToken,
 		IP:          c.ClientIP(),
 		UserAgent:   c.GetHeader("User-Agent"),
 		FingerPrint: refreshTokensDTO.FingerPrint,
 	})
-	if derr != nil {
-
-		switch derr.Code() {
+	if err != nil {
+		switch err.Code() {
 		case services.InvalidRefreshToken,
 			services.RefreshTokenExpired,
 			domainerrors.EntityNotFound,
@@ -418,7 +417,7 @@ func (ac *authController) refreshTokens(c *gin.Context) {
 			ac.resetRefreshTokenCookie(c)
 		}
 
-		writeError(c, derr)
+		ginutils.WriteError(c, err)
 		return
 	}
 
@@ -441,7 +440,7 @@ func (ac *authController) me(c *gin.Context) {
 
 	user, err := ac.authService.GetUserByID(c, userDTO.ID)
 	if err != nil {
-		writeError(c, err)
+		ginutils.WriteError(c, err)
 		return
 	}
 
@@ -463,7 +462,7 @@ func (ac *authController) activeSessions(c *gin.Context) {
 		userDTO.ID,
 	)
 	if err != nil {
-		writeError(c, err)
+		ginutils.WriteError(c, err)
 		return
 	}
 
@@ -486,7 +485,7 @@ func (ac *authController) getAuthProviders(c *gin.Context) {
 		userID,
 	)
 	if err != nil {
-		writeError(c, err)
+		ginutils.WriteError(c, err)
 		return
 	}
 
@@ -557,7 +556,7 @@ func (ac *authController) logout(c *gin.Context) {
 func (ac *authController) logoutAll(c *gin.Context) {
 	refreshToken, err := c.Cookie(cookieName)
 	if err != nil {
-		writeErrorWithStatus(
+		ginutils.WriteErrorWithStatus(
 			c,
 			http.StatusUnauthorized,
 			ErrRefreshTokenNotFound,
@@ -573,7 +572,9 @@ func (ac *authController) logoutAll(c *gin.Context) {
 	if err != nil {
 		c.JSON(
 			http.StatusInternalServerError,
-			gin.H{"message": "Internal server error"},
+			&dto.CommonResponseDTO{
+				Message: "Internal server error",
+			},
 		)
 		return
 	}
@@ -581,7 +582,9 @@ func (ac *authController) logoutAll(c *gin.Context) {
 	// Delete refresh token from cookie
 	ac.resetRefreshTokenCookie(c)
 
-	c.JSON(http.StatusOK, gin.H{"message": "Logged out"})
+	c.JSON(http.StatusOK, &dto.CommonResponseDTO{
+		Message: "Logged out",
+	})
 }
 
 // @Tags		Auth
@@ -593,7 +596,7 @@ func (ac *authController) logoutAll(c *gin.Context) {
 func (ac *authController) deleteUser(c *gin.Context) {
 	user := middlewares.ExtractUser(c)
 	if user == nil {
-		writeError(c, domainerrors.NewErrUnknown(
+		ginutils.WriteError(c, domainerrors.NewErrUnknown(
 			errors.New("user not found"),
 		))
 		return
@@ -601,13 +604,15 @@ func (ac *authController) deleteUser(c *gin.Context) {
 
 	err := ac.authService.DeleteUser(c, user.ID)
 	if err != nil {
-		writeError(c, err)
+		ginutils.WriteError(c, err)
 		return
 	}
 
 	ac.resetRefreshTokenCookie(c)
 
-	c.JSON(http.StatusOK, gin.H{"message": "User deleted"})
+	c.JSON(http.StatusOK, &dto.CommonResponseDTO{
+		Message: "User deleted",
+	})
 }
 
 func (ac *authController) setRefreshTokenCookie(
